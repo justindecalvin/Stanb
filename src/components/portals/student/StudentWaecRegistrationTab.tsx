@@ -30,12 +30,7 @@ import {
 import { StudentProfile, WaecDepartment, WaecRegistration } from '../../../types';
 import { useSchool } from '../../../context/SchoolContext';
 import { NIGERIAN_STATES } from '../../../data/nigeriaStatesLga';
-import { 
-  WAEC_COMPULSORY_SUBJECTS, 
-  WAEC_ELECTIVE_SUBJECTS, 
-  WAEC_DEPARTMENT_RECOMMENDATIONS, 
-  WaecCatalogSubject 
-} from '../../../data/waecSubjects';
+import { WaecCatalogSubject } from '../../../data/waecSubjects';
 import { 
   downloadSingleStudentWaecZip, 
   importWaecPackageZip 
@@ -52,7 +47,9 @@ export const StudentWaecRegistrationTab: React.FC<StudentWaecRegistrationTabProp
     schoolInfo, 
     waecRegistrations, 
     saveWaecRegistration, 
-    waecPromptBroadcast 
+    waecPromptBroadcast,
+    waecSubjects,
+    waecDepartmentRecommendations
   } = useSchool();
 
   // Find existing registration for this scholar
@@ -100,8 +97,20 @@ export const StudentWaecRegistrationTab: React.FC<StudentWaecRegistrationTabProp
     existingReg?.passportFilename || `${student.regNumber}_passport.jpg`
   );
 
-  // Subjects selection: 3 compulsory always included
-  const compulsoryNames = useMemo(() => WAEC_COMPULSORY_SUBJECTS.map(s => s.name), []);
+  // Dynamic Compulsory Core Subjects from active WAEC catalog
+  const compulsorySubjects = useMemo(() => {
+    return (waecSubjects || []).filter(s => s.category === 'core');
+  }, [waecSubjects]);
+
+  const compulsoryNames = useMemo(() => {
+    return compulsorySubjects.map(s => s.name);
+  }, [compulsorySubjects]);
+
+  const electiveSubjects = useMemo(() => {
+    return (waecSubjects || []).filter(s => s.category !== 'core');
+  }, [waecSubjects]);
+
+  // Subjects selection: compulsory core always included
   const [selectedSubjects, setSelectedSubjects] = useState<string[]>(() => {
     if (existingReg?.subjects && existingReg.subjects.length > 0) {
       // Ensure compulsory are in
@@ -109,7 +118,7 @@ export const StudentWaecRegistrationTab: React.FC<StudentWaecRegistrationTabProp
       return combined;
     }
     // Default: compulsory + recommended for department
-    const recs = WAEC_DEPARTMENT_RECOMMENDATIONS[defaultDept] || [];
+    const recs = waecDepartmentRecommendations?.[defaultDept] || [];
     return Array.from(new Set([...compulsoryNames, ...recs])).slice(0, 9);
   });
 
@@ -160,7 +169,7 @@ export const StudentWaecRegistrationTab: React.FC<StudentWaecRegistrationTabProp
 
   // Elective catalog filtered
   const filteredElectives = useMemo(() => {
-    return WAEC_ELECTIVE_SUBJECTS.filter(s => {
+    return electiveSubjects.filter(s => {
       const matchCat = subjectCategoryFilter === 'all' || s.category === subjectCategoryFilter;
       const matchSearch = !subjectSearch || 
         s.name.toLowerCase().includes(subjectSearch.toLowerCase()) || 
@@ -168,7 +177,7 @@ export const StudentWaecRegistrationTab: React.FC<StudentWaecRegistrationTabProp
         s.description.toLowerCase().includes(subjectSearch.toLowerCase());
       return matchCat && matchSearch;
     });
-  }, [subjectCategoryFilter, subjectSearch]);
+  }, [electiveSubjects, subjectCategoryFilter, subjectSearch]);
 
   // Toggle subject selection
   const handleToggleSubject = (subjectName: string) => {
@@ -192,7 +201,7 @@ export const StudentWaecRegistrationTab: React.FC<StudentWaecRegistrationTabProp
   // Quick preset apply for department
   const handleApplyDepartmentPreset = (dept: WaecDepartment) => {
     setDepartment(dept);
-    const recs = WAEC_DEPARTMENT_RECOMMENDATIONS[dept] || [];
+    const recs = waecDepartmentRecommendations?.[dept] || [];
     const newSubjects = Array.from(new Set([...compulsoryNames, ...recs])).slice(0, 9);
     setSelectedSubjects(newSubjects);
     setSaveSuccessMsg(`Applied standard WAEC ${dept} subject combination (9 subjects).`);
@@ -246,14 +255,13 @@ export const StudentWaecRegistrationTab: React.FC<StudentWaecRegistrationTabProp
       errors.push(`NIN must be exactly 11 digits (current length: ${cleanNin.length}).`);
     }
 
-    // Subjects validation (must have the 3 compulsory and exactly 9 total)
-    if (!selectedSubjects.includes('English Language') || 
-        !selectedSubjects.includes('Mathematics') || 
-        !selectedSubjects.includes('Civic Education')) {
-      errors.push('The 3 compulsory core subjects (English Language, Mathematics, Civic Education) must be selected.');
+    // Subjects validation (must have all compulsory core subjects and exactly 9 total)
+    const missingCompulsory = compulsoryNames.filter(c => !selectedSubjects.includes(c));
+    if (missingCompulsory.length > 0) {
+      errors.push(`The compulsory core subjects (${missingCompulsory.join(', ')}) must be selected.`);
     }
 
-    if (selectedSubjects.length < 8 || selectedSubjects.length > 9) {
+    if (selectedSubjects.length !== 9) {
       errors.push(`WAEC requires exactly 9 subjects altogether (you currently have ${selectedSubjects.length} selected).`);
     }
 
@@ -814,7 +822,7 @@ export const StudentWaecRegistrationTab: React.FC<StudentWaecRegistrationTabProp
                     Official 9 WAEC Subjects Enrolment
                   </h3>
                   <p className="text-xs text-stone-500">
-                    1. English Language &bull; 2. Mathematics &bull; 3. Civic Education are compulsory. Supply 6 other subjects to make 9 altogether.
+                    {compulsoryNames.map((c, i) => `${i + 1}. ${c}`).join(' • ')} are compulsory. Supply {Math.max(0, 9 - compulsoryNames.length)} other subjects to make 9 altogether.
                   </p>
                 </div>
               </div>

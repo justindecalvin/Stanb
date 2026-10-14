@@ -3,6 +3,7 @@ import path from "path";
 import { createServer as createViteServer } from "vite";
 import dotenv from "dotenv";
 import { GoogleGenAI } from "@google/genai";
+import { PDFParse } from "pdf-parse";
 
 dotenv.config();
 
@@ -847,8 +848,8 @@ async function startServer() {
   const app = express();
   const PORT = Number(process.env.PORT) || 3000;
 
-  app.use(express.json({ limit: "15mb" }));
-  app.use(express.urlencoded({ extended: true, limit: "15mb" }));
+  app.use(express.json({ limit: "60mb" }));
+  app.use(express.urlencoded({ extended: true, limit: "60mb" }));
 
   // Health check
   app.get("/api/health", (_req, res) => {
@@ -1621,6 +1622,63 @@ Complete Practice Exercise in your textbook (Questions 1 to 5) and submit at the
     });
   });
 
+  // Extract text from PDF endpoint (supports whole document or specific pages/search)
+  app.post("/api/extract-pdf", async (req, res) => {
+    try {
+      const { 
+        pdfBase64, 
+        first = 0, 
+        last = 0, 
+        partial = [], 
+        searchTerm = "" 
+      } = req.body;
+
+      if (!pdfBase64) {
+        return res.status(400).json({ success: false, error: "No PDF data provided" });
+      }
+
+      const cleanBase64 = String(pdfBase64).replace(/^data:application\/pdf;base64,/, "");
+      const buffer = Buffer.from(cleanBase64, "base64");
+
+      const parser = new PDFParse({ data: buffer });
+      const params: any = {};
+      if (first > 0) params.first = Number(first);
+      if (last > 0) params.last = Number(last);
+      if (Array.isArray(partial) && partial.length > 0) {
+        params.partial = partial.map(Number);
+      }
+
+      const result = await parser.getText(params);
+      await parser.destroy();
+
+      let matchingPages: number[] = [];
+      if (searchTerm && result.pages && result.pages.length > 0) {
+        const terms = searchTerm.toLowerCase().split(/\s+/).filter(Boolean);
+        matchingPages = result.pages
+          .filter((p: any) => {
+            const pageText = (p.text || "").toLowerCase();
+            return terms.some((t: string) => pageText.includes(t));
+          })
+          .map((p: any) => p.num);
+      }
+
+      return res.json({
+        success: true,
+        totalPages: result.total,
+        extractedPagesCount: result.pages.length,
+        text: result.text,
+        matchingPages,
+        firstPageSnippet: result.pages[0]?.text?.slice(0, 500) || ""
+      });
+    } catch (err: any) {
+      console.error("PDF extraction error:", err);
+      return res.status(500).json({
+        success: false,
+        error: err?.message || "Failed to extract text from PDF document"
+      });
+    }
+  });
+
   // Scheme of Work Parser Endpoint (learns from uploaded PDF/Word/Text or pasted syllabus)
   app.post("/api/parse-scheme", async (req, res) => {
     const { 
@@ -1632,10 +1690,48 @@ Complete Practice Exercise in your textbook (Questions 1 to 5) and submit at the
       rawPastedText = "",
       additionalInstructions = "",
       isGeneralScheme = false,
-      applicableClasses = []
+      applicableClasses = [],
+      pdfBase64 = "",
+      pageStart = 0,
+      pageEnd = 0
     } = req.body;
 
     let sourceText = (fileContentText || rawPastedText || "").trim();
+
+    // If PDF Base64 is provided and sourceText is empty or incomplete, extract with PDFParse
+    if (!sourceText && pdfBase64) {
+      try {
+        const cleanBase64 = String(pdfBase64).replace(/^data:application\/pdf;base64,/, "");
+        const buffer = Buffer.from(cleanBase64, "base64");
+        const parser = new PDFParse({ data: buffer });
+        const params: any = {};
+        if (pageStart > 0 && pageEnd >= pageStart) {
+          params.first = Number(pageStart);
+          params.last = Number(pageEnd);
+        }
+        const pdfResult = await parser.getText(params);
+        await parser.destroy();
+
+        if (pdfResult.pages && pdfResult.pages.length > 15 && (!pageStart || pageStart <= 0)) {
+          const sLower = subject.toLowerCase();
+          const cLower = classLevel.toLowerCase();
+          const relevantPages = pdfResult.pages.filter((p: any) => {
+            const t = (p.text || "").toLowerCase();
+            return t.includes(sLower) || (t.includes(cLower) && t.includes("week"));
+          });
+          if (relevantPages.length > 0) {
+            sourceText = relevantPages.map((p: any) => `[Page ${p.num}]\n${p.text}`).join("\n\n");
+          } else {
+            sourceText = pdfResult.text.slice(0, 25000);
+          }
+        } else {
+          sourceText = (pdfResult.text || "").trim();
+        }
+      } catch (pdfErr) {
+        console.warn("Failed extracting PDF in parse-scheme:", pdfErr);
+      }
+    }
+
     if (!sourceText) {
       sourceText = `Official 12-Week Curriculum Scheme of Work for ${subject} (${classLevel} - ${term}). Units 1 to 12 cover fundamental principles, practical exercises, and exam preparation.`;
     }
@@ -1644,20 +1740,34 @@ Complete Practice Exercise in your textbook (Questions 1 to 5) and submit at the
 
     if (ai) {
       try {
-        const prompt = `You are an expert curriculum specialist for Stanbax Schools Ibadan, Nigeria.
-Analyze and parse the following uploaded Scheme of Work document for:
+        const prompt = `You are a distinguished Nigerian Secondary Curriculum and WAEC/NERDC education specialist for Stanbax Schools Ibadan, Nigeria.
+Analyze and parse the following uploaded Scheme of Work / National Curriculum document for:
 Subject: ${subject}
 Class Level: ${classLevel}
 Term: ${term}
 ${additionalInstructions ? `TEACHER'S ADDITIONAL INSTRUCTIONS / GUIDELINES: "${additionalInstructions}"` : ''}
 
-RAW UPLOADED DOCUMENT CONTENT:
+DOCUMENT / CURRICULUM CONTENT:
 """
-${sourceText.slice(0, 15000)}
+${sourceText.slice(0, 25000)}
 """
 
-Extract and organize into a clean, comprehensive 10 to 12-week Scheme of Work following Nigerian NERDC / WAEC WASSCE and British Cambridge curriculum standards.
-${additionalInstructions ? `MANDATORY: Align and reflect the teacher's guidelines: "${additionalInstructions}" in the scheme breakdown and learning objectives.` : ''}
+NOTE ON NIGERIAN NERDC CURRICULUM FORMAT:
+Nigerian NERDC national curriculum documents typically have tabular schemes with columns:
+1. Week (Week 1 to Week 12)
+2. Theme / Topic (e.g. Number & Numeration, Chemical Reactions, Civic Responsibilities, Literary Appreciation)
+3. Content / Sub-topics (Detailed syllabus content)
+4. Performance Objectives (Action verbs: "Students should be able to: 1. ... 2. ...")
+5. Teacher's Activities & Students' Activities (Teaching methodology, whiteboard exercises, group lab work)
+6. Teaching & Learning Resources / Materials (Textbooks, apparatus, charts, models)
+7. Evaluation Guide (Continuous assessment questions, test items)
+
+Map these directly into the output JSON structure:
+- "topic": Topic / Theme Title
+- "subtopics": List of content items / subtopics
+- "learningObjectives": List of performance objectives
+- "keyFormulasOrTerms": Teaching resources, key scientific terms, or formulas
+- "suggestedActivities": Teacher & student activities + evaluation guide
 
 OUTPUT FORMAT: Return a valid JSON object matching this structure:
 {
@@ -1673,15 +1783,15 @@ OUTPUT FORMAT: Return a valid JSON object matching this structure:
       "topic": "Main Topic Title",
       "subtopics": ["Subtopic 1", "Subtopic 2"],
       "learningObjectives": ["Objective 1", "Objective 2"],
-      "keyFormulasOrTerms": ["Key Formula / Term 1"],
-      "suggestedActivities": "Activity or experiment"
+      "keyFormulasOrTerms": ["Key Formula / Term / Resource 1"],
+      "suggestedActivities": "Activity or experiment + evaluation guide"
     }
   ]
 }
 
 CRITICAL RULES:
 - Ensure each week from Week 1 to Week 12 is thoroughly represented.
-- If the uploaded document only has partial weeks or raw notes, intelligently fill in the missing curriculum weeks up to Week 12 for ${subject} (${classLevel}).
+- If Week 6 is Mid-Term Assessment, or Week 12 is Revision & Exams, maintain that standard.
 - Return ONLY the JSON object. Do not include markdown code block backticks.`;
 
         const { response } = await generateWithGemini(ai, {
@@ -1704,7 +1814,7 @@ CRITICAL RULES:
             source: "gemini_curriculum_brain",
             scheme: {
               ...parsed,
-              uploadedFileName: fileName || "uploaded_scheme_document.txt",
+              uploadedFileName: fileName || "uploaded_scheme_document.pdf",
               uploadedAt: new Date().toISOString().split('T')[0],
               rawText: sourceText.slice(0, 3000),
               isAiLearned: true
@@ -1716,7 +1826,7 @@ CRITICAL RULES:
       }
     }
 
-    // Rule-based structured extractor fallback
+    // Rule-based structured extractor fallback (NERDC table aware)
     const lines = sourceText.split('\n').map((l: string) => l.trim()).filter(Boolean);
     const weeklyTopics: any[] = [];
     let currentTopicObj: any = null;
@@ -1738,7 +1848,15 @@ CRITICAL RULES:
       } else if (currentTopicObj) {
         const cleanItem = line.replace(/^[-•*]\s*/, '').trim();
         if (cleanItem.length > 2 && currentTopicObj.subtopics.length < 5) {
-          currentTopicObj.subtopics.push(cleanItem);
+          if (/students? should be able to|objectives?:/i.test(cleanItem)) {
+            currentTopicObj.learningObjectives.push(cleanItem);
+          } else if (/resources?:|materials?:|apparatus:/i.test(cleanItem)) {
+            currentTopicObj.keyFormulasOrTerms.push(cleanItem);
+          } else if (/activities?:|evaluation:/i.test(cleanItem)) {
+            currentTopicObj.suggestedActivities += `; ${cleanItem}`;
+          } else {
+            currentTopicObj.subtopics.push(cleanItem);
+          }
         }
       }
     }

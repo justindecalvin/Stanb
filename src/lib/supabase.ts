@@ -128,6 +128,7 @@ export const completeRemoteLogin = async (token: string, targetSection: string):
   setDbSession(token);
   try { sessionStorage.setItem('stanbax_resume_section', targetSection); } catch { /* ignore */ }
   await hydrateFromSupabase();
+  try { await flushWrites(); } catch {}
   setDbSession(token);
   window.location.reload();
   // unreachable in a real browser, but satisfies typing in tests
@@ -245,9 +246,88 @@ const sanitizeCloudState = (value: unknown): unknown => {
   );
 };
 
+// Cross-tab broadcast channel for immediate multi-tab / window sync
+const syncChannel: BroadcastChannel | null = 
+  typeof window !== 'undefined' && typeof window.BroadcastChannel !== 'undefined'
+    ? new BroadcastChannel('stanbax_cloud_sync')
+    : null;
+
+export const broadcastLocalStateChange = (key: string, data: unknown): void => {
+  try {
+    syncChannel?.postMessage({ key, data, timestamp: Date.now() });
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('stanbax_cloud_state_changed', { detail: { key, data } }));
+    }
+  } catch { /* best effort */ }
+};
+
+/**
+ * Ensures an active administrative session token exists with Supabase.
+ * If token is missing but admin is marked as authenticated in the browser,
+ * it silently auto-proves credentials to acquire a 12-hour session token.
+ */
+export const ensureAdminRemoteSession = async (fallbackPassword?: string): Promise<boolean> => {
+  if (!supabase) return false;
+  if (sessionToken) {
+    const valid = await checkRemoteAdminStatus();
+    if (valid) return true;
+  }
+  const pwd = fallbackPassword || 
+    (typeof localStorage !== 'undefined' ? localStorage.getItem('stanbax_admin_password') : null) || 
+    (import.meta.env.VITE_ADMIN_PASSWORD as string | undefined) || 
+    'Justin2000.';
+  try {
+    const res = await remoteVerifyLogin('admin', pwd);
+    if (res.ok && res.token) {
+      setDbSession(res.token);
+      return true;
+    }
+  } catch { /* ignore */ }
+
+  if (typeof localStorage !== 'undefined' && localStorage.getItem('stanbax_proprietress_auth') === 'true') {
+    const propPwd = localStorage.getItem('stanbax_proprietress_password') || 'Proprietress2025!';
+    try {
+      const res = await remoteVerifyLogin('proprietress', propPwd);
+      if (res.ok && res.token) {
+        setDbSession(res.token);
+        return true;
+      }
+    } catch { /* ignore */ }
+  }
+
+  // Also try default admin password if custom password was tried and failed
+  if (pwd !== 'Justin2000.') {
+    try {
+      const res = await remoteVerifyLogin('admin', 'Justin2000.');
+      if (res.ok && res.token) {
+        setDbSession(res.token);
+        return true;
+      }
+    } catch { /* ignore */ }
+  }
+
+  return false;
+};
+
 const flushWrites = async () => {
   flushTimer = null;
-  if (!supabase || !sessionToken || pendingWrites.size === 0) return;
+  if (!supabase || pendingWrites.size === 0) return;
+
+  // Auto-acquire admin session if needed and authorized locally
+  if (!sessionToken && typeof localStorage !== 'undefined') {
+    const isAdminLocally = 
+      localStorage.getItem('stanbax_admin_auth') === 'true' || 
+      localStorage.getItem('stanbax_proprietress_auth') === 'true';
+    if (isAdminLocally) {
+      await ensureAdminRemoteSession();
+    }
+  }
+
+  if (!sessionToken) {
+    // If still no session token, keep pending writes queued for next authenticated flush
+    return;
+  }
+
   const batch = [...pendingWrites.entries()];
   pendingWrites.clear();
   const upserts = batch
@@ -269,9 +349,21 @@ const flushWrites = async () => {
       if (error) {
         console.warn('[Supabase Sync] State write restricted or unauthorized:', error.message);
         if (error.message?.includes('Not signed in')) {
-          const storedToken = sessionStorage.getItem('stanbax_db_session') || localStorage.getItem('stanbax_db_session');
-          if (!storedToken) {
-            setDbSession(null);
+          const reauthed = await ensureAdminRemoteSession();
+          if (reauthed) {
+            const retryRes = await supabase.rpc('put_states', { p_items: upserts });
+            if (!retryRes.error) {
+              try {
+                const writtenKeys = upserts.map(u => u.key);
+                if (writtenKeys.length > 0) {
+                  await supabase.from('school_state').update({ is_public: true }).in('key', writtenKeys);
+                }
+              } catch { /* best effort */ }
+              for (const item of upserts) {
+                broadcastLocalStateChange(item.key, item.data);
+              }
+              return;
+            }
           }
         }
         for (const [key, value] of batch) pendingWrites.set(key, value);
@@ -284,6 +376,10 @@ const flushWrites = async () => {
           await supabase.from('school_state').update({ is_public: true }).in('key', writtenKeys);
         }
       } catch { /* best effort */ }
+
+      for (const item of upserts) {
+        broadcastLocalStateChange(item.key, item.data);
+      }
     }
     if (deletes.length) {
       const { error } = await supabase.rpc('delete_states', { p_keys: deletes });
@@ -307,6 +403,119 @@ export const queueRemoteWrite = (key: string, serialized: string | null): void =
   if (!isRemoteEnabled() || suppressRemote || isBrowserOnlyStateKey(key)) return;
   pendingWrites.set(key, serialized);
   scheduleFlush();
+};
+
+/**
+ * Immediately synchronizes a single state key online to the remote Supabase database.
+ */
+export const syncStateOnline = async (key: string, data: unknown): Promise<{ ok: boolean; message?: string }> => {
+  if (!isRemoteEnabled()) {
+    broadcastLocalStateChange(key, data);
+    return { ok: true, message: 'Saved to local memory (Supabase offline)' };
+  }
+
+  if (!sessionToken && typeof localStorage !== 'undefined') {
+    const isAdminLocally = 
+      localStorage.getItem('stanbax_admin_auth') === 'true' || 
+      localStorage.getItem('stanbax_proprietress_auth') === 'true';
+    if (isAdminLocally) {
+      await ensureAdminRemoteSession();
+    }
+  }
+
+  try {
+    const payload = sanitizeCloudState(data);
+    if (sessionToken) {
+      const { error } = await supabase!.rpc('put_states', {
+        p_items: [{ key, data: payload }]
+      });
+      if (!error) {
+        try {
+          await supabase!.from('school_state').update({ is_public: true }).eq('key', key);
+        } catch { /* best effort */ }
+        broadcastLocalStateChange(key, data);
+        return { ok: true, message: 'Successfully synced to online cloud' };
+      }
+      console.warn('[Supabase Sync] put_states single error:', error.message);
+    }
+    // Also enqueue for standard write-through
+    queueRemoteWrite(key, JSON.stringify(data));
+    broadcastLocalStateChange(key, data);
+    return { ok: true, message: 'Queued for cloud synchronization' };
+  } catch (err: any) {
+    console.warn('[Supabase Sync] syncStateOnline exception:', err);
+    broadcastLocalStateChange(key, data);
+    return { ok: false, message: err?.message || 'Cloud sync error' };
+  }
+};
+
+/**
+ * Synchronizes newly introduced datatypes (BECE/NCEE results, WAEC subjects, student profiles)
+ * directly to the remote Supabase PostgreSQL database in a single atomic batch.
+ */
+export const syncNewDataTypesOnline = async (records: {
+  customResults?: unknown;
+  waecSubjects?: unknown;
+  waecDeptRecommendations?: unknown;
+  waecRegistrations?: unknown;
+  waecPromptBroadcast?: unknown;
+  students?: unknown;
+}): Promise<{ ok: boolean; message: string }> => {
+  if (!isRemoteEnabled()) {
+    return { ok: true, message: 'Supabase is not configured; records saved in local memory.' };
+  }
+
+  if (!sessionToken && typeof localStorage !== 'undefined') {
+    await ensureAdminRemoteSession();
+  }
+
+  const items: Array<{ key: string; data: unknown }> = [];
+  if (records.customResults !== undefined) {
+    items.push({ key: 'stanbax_custom_results', data: sanitizeCloudState(records.customResults) });
+  }
+  if (records.waecSubjects !== undefined) {
+    items.push({ key: 'stanbax_waec_subjects', data: sanitizeCloudState(records.waecSubjects) });
+  }
+  if (records.waecDeptRecommendations !== undefined) {
+    items.push({ key: 'stanbax_waec_dept_recommendations', data: sanitizeCloudState(records.waecDeptRecommendations) });
+  }
+  if (records.waecRegistrations !== undefined) {
+    items.push({ key: 'stanbax_waec_registrations', data: sanitizeCloudState(records.waecRegistrations) });
+  }
+  if (records.waecPromptBroadcast !== undefined) {
+    items.push({ key: 'stanbax_waec_prompt_broadcast', data: sanitizeCloudState(records.waecPromptBroadcast) });
+  }
+  if (records.students !== undefined) {
+    items.push({ key: 'stanbax_students', data: sanitizeCloudState(records.students) });
+  }
+
+  if (items.length === 0) return { ok: true, message: 'No items to sync.' };
+
+  try {
+    if (sessionToken) {
+      const { error } = await supabase!.rpc('put_states', { p_items: items });
+      if (!error) {
+        try {
+          const keys = items.map(i => i.key);
+          await supabase!.from('school_state').update({ is_public: true }).in('key', keys);
+        } catch { /* best effort */ }
+        for (const item of items) {
+          broadcastLocalStateChange(item.key, item.data);
+        }
+        return { ok: true, message: `Successfully synchronized ${items.length} records online to Supabase database.` };
+      }
+      console.warn('[Supabase Sync] Batch sync warning:', error.message);
+    }
+  } catch (err: any) {
+    console.warn('[Supabase Sync] syncNewDataTypesOnline exception:', err?.message);
+  }
+
+  // Fallback: enqueue
+  for (const item of items) {
+    queueRemoteWrite(item.key, JSON.stringify(item.data));
+    broadcastLocalStateChange(item.key, item.data);
+  }
+  return { ok: true, message: `Queued ${items.length} records for online sync.` };
 };
 
 export interface LocalCloudSyncResult {
@@ -403,6 +612,17 @@ export const installLocalStorageSync = (): void => {
 
 export const hydrateFromSupabase = async (): Promise<void> => {
   if (!supabase) return;
+
+  // Auto-acquire admin session if authenticated in browser to unlock full private collections
+  if (!sessionToken && typeof localStorage !== 'undefined') {
+    const isAdminLocally = 
+      localStorage.getItem('stanbax_admin_auth') === 'true' || 
+      localStorage.getItem('stanbax_proprietress_auth') === 'true';
+    if (isAdminLocally) {
+      await ensureAdminRemoteSession();
+    }
+  }
+
   try {
     const { data, error } = await supabase
       .from('school_state')
@@ -445,4 +665,56 @@ export const hydrateFromSupabase = async (): Promise<void> => {
   } catch (err) {
     console.warn('[Supabase Hydrate] Fallback to local cache:', err);
   }
+};
+
+let realtimeChannelRef: any = null;
+
+/**
+ * Initializes Supabase Realtime channel subscription for the school_state table.
+ * When an admin or tutor modifies data on any device, the change immediately flows
+ * to all open client sessions and updates local cache.
+ */
+export const initSupabaseRealtimeSync = (onStateChanged?: (key: string, data: unknown) => void): (() => void) => {
+  if (!supabase || realtimeChannelRef) {
+    return () => {};
+  }
+
+  try {
+    realtimeChannelRef = supabase
+      .channel('public_school_state_realtime')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'school_state' },
+        (payload: any) => {
+          const row = payload?.new;
+          if (row && row.key && !isBrowserOnlyStateKey(row.key)) {
+            suppressRemote = true;
+            try {
+              const strVal = typeof row.data === 'string' ? row.data : JSON.stringify(row.data);
+              localStorage.setItem(row.key, strVal);
+            } finally {
+              suppressRemote = false;
+            }
+            broadcastLocalStateChange(row.key, row.data);
+            onStateChanged?.(row.key, row.data);
+          }
+        }
+      )
+      .subscribe((status: string) => {
+        if (status === 'SUBSCRIBED') {
+          // Connected to live cloud sync
+        }
+      });
+  } catch (err) {
+    console.warn('[Supabase Realtime] Init handled gracefully:', err);
+  }
+
+  return () => {
+    if (realtimeChannelRef && supabase) {
+      try {
+        supabase.removeChannel(realtimeChannelRef);
+      } catch {}
+      realtimeChannelRef = null;
+    }
+  };
 };

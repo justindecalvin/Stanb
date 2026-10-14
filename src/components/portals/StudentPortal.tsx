@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useSchool } from '../../context/SchoolContext';
 import { 
   GraduationCap, 
@@ -36,7 +36,7 @@ import {
   CreditCard,
   Sparkles
 } from '../RealIcons';
-import { HistoricalSessionRecord, HistoricalTermRecord, GradeRecord, Homework } from '../../types';
+import { HistoricalSessionRecord, HistoricalTermRecord, GradeRecord, Homework, CustomResult } from '../../types';
 import { generateStudentHistoricalRecords } from '../../data/schoolData';
 import { PortalLoginPage } from '../PortalLoginPage';
 import { StudentLessonNotesTab } from './student/StudentLessonNotesTab';
@@ -49,6 +49,7 @@ import { StudentIdCardModal } from './student/StudentIdCardModal';
 import { StudentCalvinAiTab } from './student/StudentCalvinAiTab';
 import { StudentWaecRegistrationTab } from './student/StudentWaecRegistrationTab';
 import { WaecPromptModal } from './student/WaecPromptModal';
+import { CertifiedExamResultSlipModal } from './CertifiedExamResultSlipModal';
 import { SchoolChatSystem } from '../chat/SchoolChatSystem';
 import { CampusGallery } from '../CampusGallery';
 import { SchoolLogo } from '../SchoolLogo';
@@ -87,7 +88,8 @@ export const StudentPortal: React.FC<StudentPortalProps> = ({ onBackToWebsite })
     isCgpaActiveForClass,
     waecRegistrations,
     waecPromptBroadcast,
-    dismissWaecPromptForStudent
+    dismissWaecPromptForStudent,
+    customResults
   } = useSchool();
 
   const isSeniorSecondaryWaec = /SSS?\s*[23]/i.test(student.grade || '');
@@ -160,7 +162,7 @@ export const StudentPortal: React.FC<StudentPortalProps> = ({ onBackToWebsite })
     );
   }
 
-  const [activeTab, setActiveTab] = useState<'overview' | 'chat' | 'calvin_ai' | 'notes' | 'cbt' | 'library' | 'sciencelab' | 'homework' | 'grades' | 'timetable' | 'sickbay' | 'gallery' | 'waec'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'chat' | 'calvin_ai' | 'notes' | 'cbt' | 'library' | 'sciencelab' | 'homework' | 'grades' | 'timetable' | 'sickbay' | 'gallery' | 'waec' | 'bece' | 'ncee'>('overview');
   const [isSideMenuOpen, setIsSideMenuOpen] = useState(false);
   const [isIdCardOpen, setIsIdCardOpen] = useState(false);
 
@@ -191,7 +193,57 @@ export const StudentPortal: React.FC<StudentPortalProps> = ({ onBackToWebsite })
   // Two report cards per term: mid-term (CA1+CA2) and end-of-term (CA1–3+Exam).
   // Admin publishes each independently via the collation desk.
   const [reportCardKind, setReportCardKind] = useState<'mid' | 'end'>('end');
-  const [viewMode, setViewMode] = useState<'term_sheet' | 'session_progression'>('term_sheet');
+  const [viewMode, setViewMode] = useState<'term_sheet' | 'session_progression' | 'bece_result' | 'ncee_result' | 'external_results'>('term_sheet');
+  const [modalExamResult, setModalExamResult] = useState<CustomResult | null>(null);
+
+  // External Certified Results & Placement (BECE for JSS 3 - SS 3 & Alumni, NCEE for Primary 5 & JSS 1)
+  const isBeceEligible = useMemo(() => {
+    if (student.isAlumni) return true;
+    const g = (student.grade || '').toLowerCase();
+    return g.includes('jss 3') || g.includes('jss3') || 
+           g.includes('sss') || g.includes('ss 1') || 
+           g.includes('ss 2') || g.includes('ss 3') || 
+           g.includes('ss1') || g.includes('ss2') || g.includes('ss3');
+  }, [student]);
+
+  const isNceeEligible = useMemo(() => {
+    const g = (student.grade || '').toLowerCase();
+    return g.includes('primary 5') || g.includes('primary 6') || 
+           g.includes('pri 5') || g.includes('pri 6') || 
+           g.includes('jss 1') || g.includes('jss1');
+  }, [student]);
+
+  const studentCustomResults = useMemo(() => {
+    const listFromGlobal = (customResults || []).filter(r => {
+      const rId = (r as any).studentId;
+      const rReg = (r as any).studentRegNumber;
+      return rId === student.id || 
+             (rReg && rReg.toLowerCase() === student.regNumber.toLowerCase());
+    });
+    const fromStudentObj = student.customResults || [];
+    const mergedMap = new Map<string, CustomResult>();
+    for (const r of listFromGlobal) mergedMap.set(r.id, r);
+    for (const r of fromStudentObj) {
+      if (!mergedMap.has(r.id)) mergedMap.set(r.id, r);
+    }
+    return Array.from(mergedMap.values());
+  }, [customResults, student]);
+
+  const studentBeceResult = useMemo(() => {
+    return studentCustomResults.find(r => 
+      r.examType === 'BECE' || 
+      r.title.toLowerCase().includes('bece') || 
+      r.title.toLowerCase().includes('junior waec')
+    );
+  }, [studentCustomResults]);
+
+  const studentNceeResult = useMemo(() => {
+    return studentCustomResults.find(r => 
+      r.examType === 'NCEE' || 
+      r.title.toLowerCase().includes('common entrance') || 
+      r.title.toLowerCase().includes('ncee')
+    );
+  }, [studentCustomResults]);
 
   // Homework is tracked per scholar: submissions[student.id] overrides the
   // class-level status, and the list is filtered to this scholar's class.
@@ -636,6 +688,26 @@ export const StudentPortal: React.FC<StudentPortalProps> = ({ onBackToWebsite })
         : 'bg-rose-500/20 text-rose-300 border-rose-500/30 animate-pulse',
       icon: Award,
       description: 'Official WASSCE bio-data, 3 compulsory core + 6 electives (9 subjects total), and candidate ZIP package'
+    }] : []),
+    ...(isBeceEligible ? [{
+      id: 'bece' as const, 
+      label: 'BECE / Junior WAEC Results', 
+      badge: studentBeceResult ? 'Certified Slip' : 'Academic Board',
+      badgeColor: studentBeceResult 
+        ? 'bg-amber-400/20 text-amber-300 border-amber-400/30' 
+        : 'bg-blue-400/20 text-blue-300 border-blue-400/30',
+      icon: Award,
+      description: 'Official Basic Education Certificate Examination result slip, custom subjects & distinctions'
+    }] : []),
+    ...(isNceeEligible ? [{
+      id: 'ncee' as const, 
+      label: 'National Common Entrance (NCEE)', 
+      badge: studentNceeResult ? 'Placement Slip' : 'Academic Board',
+      badgeColor: studentNceeResult 
+        ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30' 
+        : 'bg-blue-400/20 text-blue-300 border-blue-400/30',
+      icon: Sparkles,
+      description: 'Official National Common Entrance Examination scores, percentile aggregate & placement slip'
     }] : []),
     { 
       id: 'library' as const, 
@@ -1345,6 +1417,220 @@ export const StudentPortal: React.FC<StudentPortalProps> = ({ onBackToWebsite })
                 </div>
               )}
 
+              {/* BECE / Junior WAEC Certified Result Card (JSS 3 - SS 3 & Alumni) */}
+              {(isBeceEligible || studentBeceResult) && (
+                <div className="rounded-3xl p-5 sm:p-6 shadow-sm border-2 border-amber-300 bg-linear-to-r from-amber-50 via-white to-amber-50/40 space-y-4">
+                  <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                    <div className="flex items-center gap-3">
+                      <div className="w-11 h-11 rounded-2xl bg-amber-400 text-blue-950 flex items-center justify-center font-black shadow-xs shrink-0">
+                        <Award className="w-6 h-6" />
+                      </div>
+                      <div>
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="px-2.5 py-0.5 rounded-full bg-amber-400/30 text-amber-950 font-black text-[10px] uppercase tracking-wider border border-amber-400/50">
+                            BECE / Junior WAEC Archive
+                          </span>
+                          <span className="text-[10px] font-bold text-slate-500">
+                            {student.isAlumni ? 'Permanent Alumni Dossier' : `Cohort: ${student.grade}`}
+                          </span>
+                        </div>
+                        <h4 className="font-black text-base text-slate-900 mt-0.5">
+                          {studentBeceResult ? studentBeceResult.title : 'Basic Education Certificate Examination (BECE) Dossier'}
+                        </h4>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-2 shrink-0">
+                      {studentBeceResult && (
+                        <button
+                          type="button"
+                          onClick={() => setModalExamResult(studentBeceResult)}
+                          className="px-4 py-2 rounded-xl bg-blue-900 hover:bg-blue-950 text-white font-bold text-xs shadow-xs transition flex items-center gap-1.5 cursor-pointer"
+                        >
+                          <Eye className="w-3.5 h-3.5 text-amber-400" />
+                          <span>View Official Statement Slip</span>
+                        </button>
+                      )}
+                    </div>
+                  </div>
+
+                  {studentBeceResult ? (
+                    <div className="space-y-3 pt-1">
+                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 p-3.5 rounded-2xl bg-white border border-amber-200 text-xs">
+                        <div>
+                          <span className="block text-[10px] font-black uppercase text-slate-400">Exam Candidate No</span>
+                          <span className="font-mono font-bold text-blue-950 text-[11px]">{studentBeceResult.candidateNumber || 'Allocated'}</span>
+                        </div>
+                        <div>
+                          <span className="block text-[10px] font-black uppercase text-slate-400">Session & Diet</span>
+                          <span className="font-bold text-slate-800 text-[11px]">{studentBeceResult.session}</span>
+                        </div>
+                        <div>
+                          <span className="block text-[10px] font-black uppercase text-slate-400">Overall Evaluation</span>
+                          <span className="font-black text-emerald-800 text-[11px]">{studentBeceResult.overallScore || 'Passed'}</span>
+                        </div>
+                        <div>
+                          <span className="block text-[10px] font-black uppercase text-slate-400">Custom Subjects</span>
+                          <span className="font-bold text-slate-800 text-[11px]">{studentBeceResult.subjectBreakdown?.length || 0} Subjects Recorded</span>
+                        </div>
+                      </div>
+
+                      {/* Subject Chips */}
+                      {studentBeceResult.subjectBreakdown && studentBeceResult.subjectBreakdown.length > 0 && (
+                        <div className="flex flex-wrap gap-1.5 pt-1">
+                          {studentBeceResult.subjectBreakdown.map((s, idx) => (
+                            <span key={idx} className="px-2.5 py-1 rounded-lg bg-amber-100/70 text-amber-950 text-[11px] font-bold border border-amber-200 flex items-center gap-1.5">
+                              <span>{s.subject}:</span>
+                              <strong className="text-blue-900">{s.grade || s.score}</strong>
+                            </span>
+                          ))}
+                        </div>
+                      )}
+
+                      {studentBeceResult.placementStatus && (
+                        <div className="p-2.5 rounded-xl bg-emerald-50 border border-emerald-200 text-xs text-emerald-950 font-semibold flex items-center gap-2">
+                          <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                          <span>Placement Clearance: <strong>{studentBeceResult.placementStatus}</strong></span>
+                        </div>
+                      )}
+
+                      <div className="flex items-center justify-between text-[11px] text-slate-500 pt-1">
+                        <span className="flex items-center gap-1.5">
+                          <Lock className="w-3.5 h-3.5 text-amber-600" />
+                          <span>Official Examination Ledger &bull; Authenticated by Academic Registry (Alterable by Admin Only)</span>
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setActiveTab('grades');
+                            setViewMode('bece_result');
+                          }}
+                          className="font-bold text-blue-900 hover:underline cursor-pointer"
+                        >
+                          Open in Grades Tab →
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="p-3.5 rounded-2xl bg-white/80 border border-amber-200 text-xs text-slate-600 space-y-1">
+                      <p className="font-semibold text-slate-800">
+                        Official BECE results with custom subjects will remain permanently available in this portal once posted by the School Academic Registry.
+                      </p>
+                      <p className="text-[11px] text-slate-500">
+                        Scholars in JSS 3 through SS 3 and Alumni have permanent verification access. Alterations can only be performed by the Examination Administration.
+                      </p>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* National Common Entrance Examination (NCEE) Card (Primary 5 & JSS 1) */}
+              {(isNceeEligible || studentNceeResult) && (
+                <div className="rounded-3xl p-5 sm:p-6 shadow-sm border-2 border-emerald-300 bg-linear-to-r from-emerald-50 via-white to-teal-50/40 space-y-4">
+                  <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                    <div className="flex items-center gap-3">
+                      <div className="w-11 h-11 rounded-2xl bg-emerald-600 text-white flex items-center justify-center font-black shadow-xs shrink-0">
+                        <Sparkles className="w-6 h-6" />
+                      </div>
+                      <div>
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="px-2.5 py-0.5 rounded-full bg-emerald-200 text-emerald-950 font-black text-[10px] uppercase tracking-wider border border-emerald-300">
+                            National Common Entrance (NCEE)
+                          </span>
+                          <span className="text-[10px] font-bold text-slate-500">
+                            Primary 5 & JSS 1 Official Ledger
+                          </span>
+                        </div>
+                        <h4 className="font-black text-base text-slate-900 mt-0.5">
+                          {studentNceeResult ? studentNceeResult.title : 'National Common Entrance Examination & Placement Dossier'}
+                        </h4>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-2 shrink-0">
+                      {studentNceeResult && (
+                        <button
+                          type="button"
+                          onClick={() => setModalExamResult(studentNceeResult)}
+                          className="px-4 py-2 rounded-xl bg-emerald-800 hover:bg-emerald-900 text-white font-bold text-xs shadow-xs transition flex items-center gap-1.5 cursor-pointer"
+                        >
+                          <Eye className="w-3.5 h-3.5 text-amber-300" />
+                          <span>View Official Placement Slip</span>
+                        </button>
+                      )}
+                    </div>
+                  </div>
+
+                  {studentNceeResult ? (
+                    <div className="space-y-3 pt-1">
+                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 p-3.5 rounded-2xl bg-white border border-emerald-200 text-xs">
+                        <div>
+                          <span className="block text-[10px] font-black uppercase text-slate-400">Exam Candidate No</span>
+                          <span className="font-mono font-bold text-blue-950 text-[11px]">{studentNceeResult.candidateNumber || 'Allocated'}</span>
+                        </div>
+                        <div>
+                          <span className="block text-[10px] font-black uppercase text-slate-400">Entrance Aggregate</span>
+                          <span className="font-black text-emerald-800 text-[11px]">{studentNceeResult.overallScore || 'Cleared'}</span>
+                        </div>
+                        <div>
+                          <span className="block text-[10px] font-black uppercase text-slate-400">Percentile Rank</span>
+                          <span className="font-bold text-slate-800 text-[11px]">{studentNceeResult.aggregate || 'Top Percentile'}</span>
+                        </div>
+                        <div>
+                          <span className="block text-[10px] font-black uppercase text-slate-400">Custom Subjects</span>
+                          <span className="font-bold text-slate-800 text-[11px]">{studentNceeResult.subjectBreakdown?.length || 0} Test Papers</span>
+                        </div>
+                      </div>
+
+                      {/* Subject Chips */}
+                      {studentNceeResult.subjectBreakdown && studentNceeResult.subjectBreakdown.length > 0 && (
+                        <div className="flex flex-wrap gap-1.5 pt-1">
+                          {studentNceeResult.subjectBreakdown.map((s, idx) => (
+                            <span key={idx} className="px-2.5 py-1 rounded-lg bg-emerald-100/70 text-emerald-950 text-[11px] font-bold border border-emerald-200 flex items-center gap-1.5">
+                              <span>{s.subject}:</span>
+                              <strong className="text-emerald-900">{s.grade || s.score}</strong>
+                            </span>
+                          ))}
+                        </div>
+                      )}
+
+                      {studentNceeResult.placementStatus && (
+                        <div className="p-2.5 rounded-xl bg-emerald-100/60 border border-emerald-200 text-xs text-emerald-950 font-semibold flex items-center gap-2">
+                          <CheckCircle2 className="w-4 h-4 text-emerald-700 shrink-0" />
+                          <span>Admission Placement: <strong>{studentNceeResult.placementStatus}</strong></span>
+                        </div>
+                      )}
+
+                      <div className="flex items-center justify-between text-[11px] text-slate-500 pt-1">
+                        <span className="flex items-center gap-1.5">
+                          <Lock className="w-3.5 h-3.5 text-emerald-700" />
+                          <span>Official Entrance Board Ledger &bull; Authenticated by Academic Registry (Alterable by Admin Only)</span>
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setActiveTab('grades');
+                            setViewMode('ncee_result');
+                          }}
+                          className="font-bold text-emerald-800 hover:underline cursor-pointer"
+                        >
+                          Open in Grades Tab →
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="p-3.5 rounded-2xl bg-white/80 border border-emerald-200 text-xs text-slate-600 space-y-1">
+                      <p className="font-semibold text-slate-800">
+                        Official National Common Entrance Examination (NCEE) scores and junior secondary placement slips will appear here for Primary 5 and JSS 1 scholars.
+                      </p>
+                      <p className="text-[11px] text-slate-500">
+                        Permanent entrance records are preserved in the scholar portal. Only authorized administrators can alter scores.
+                      </p>
+                    </div>
+                  )}
+                </div>
+              )}
+
               {/* Calvin AI Companion Banner */}
               <div className="bg-linear-to-r from-indigo-900 via-purple-900 to-blue-950 text-white rounded-3xl p-5 sm:p-6 shadow-xs border border-purple-500/20 relative overflow-hidden flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <div className="relative z-10 flex items-center gap-4">
@@ -1674,7 +1960,7 @@ export const StudentPortal: React.FC<StudentPortalProps> = ({ onBackToWebsite })
 
                 <div className="flex flex-wrap items-center gap-2">
                   {/* View mode toggle */}
-                  <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-xl border border-slate-200 text-xs">
+                  <div className="flex flex-wrap items-center gap-1 bg-slate-100 p-1 rounded-xl border border-slate-200 text-xs">
                     <button
                       onClick={() => setViewMode('term_sheet')}
                       className={`px-3 py-1.5 rounded-lg font-bold text-xs flex items-center gap-1.5 cursor-pointer transition-all ${
@@ -1697,6 +1983,56 @@ export const StudentPortal: React.FC<StudentPortalProps> = ({ onBackToWebsite })
                       <History className="w-3.5 h-3.5" />
                       <span>Session Progression</span>
                     </button>
+
+                    {/* BECE Result Mode (JSS 3 - SS 3 & Alumni) */}
+                    {(isBeceEligible || studentBeceResult) && (
+                      <button
+                        onClick={() => setViewMode('bece_result')}
+                        className={`px-3 py-1.5 rounded-lg font-bold text-xs flex items-center gap-1.5 cursor-pointer transition-all ${
+                          viewMode === 'bece_result'
+                            ? 'bg-amber-400 text-blue-950 font-black shadow-xs ring-1 ring-amber-500'
+                            : 'text-amber-950 hover:bg-amber-100/70 bg-amber-50 border border-amber-200'
+                        }`}
+                      >
+                        <Award className="w-3.5 h-3.5 text-amber-700" />
+                        <span>BECE Certified Slip</span>
+                        {studentBeceResult && (
+                          <span className="w-2 h-2 rounded-full bg-emerald-600 inline-block" title="Result Certified" />
+                        )}
+                      </button>
+                    )}
+
+                    {/* National Common Entrance Examination (NCEE) Mode (Primary 5 & JSS 1) */}
+                    {(isNceeEligible || studentNceeResult) && (
+                      <button
+                        onClick={() => setViewMode('ncee_result')}
+                        className={`px-3 py-1.5 rounded-lg font-bold text-xs flex items-center gap-1.5 cursor-pointer transition-all ${
+                          viewMode === 'ncee_result'
+                            ? 'bg-emerald-700 text-white font-black shadow-xs ring-1 ring-emerald-800'
+                            : 'text-emerald-950 hover:bg-emerald-100/70 bg-emerald-50 border border-emerald-200'
+                        }`}
+                      >
+                        <Sparkles className="w-3.5 h-3.5 text-emerald-600" />
+                        <span>Common Entrance (NCEE)</span>
+                        {studentNceeResult && (
+                          <span className="w-2 h-2 rounded-full bg-amber-400 inline-block" title="Result Certified" />
+                        )}
+                      </button>
+                    )}
+
+                    {studentCustomResults.length > 0 && (
+                      <button
+                        onClick={() => setViewMode('external_results')}
+                        className={`px-3 py-1.5 rounded-lg font-bold text-xs flex items-center gap-1.5 cursor-pointer transition-all ${
+                          viewMode === 'external_results'
+                            ? 'bg-blue-900 text-white font-bold shadow-xs'
+                            : 'text-slate-600 hover:text-slate-900 hover:bg-white/60'
+                        }`}
+                      >
+                        <FileArchive className="w-3.5 h-3.5" />
+                        <span>All Official Slips ({studentCustomResults.length})</span>
+                      </button>
+                    )}
                   </div>
 
                   {/* Download Official Result Button */}
@@ -2404,6 +2740,352 @@ export const StudentPortal: React.FC<StudentPortalProps> = ({ onBackToWebsite })
                 ))}
               </div>
             )}
+
+            {/* VIEW MODE 3: BECE / JUNIOR WAEC CERTIFIED STATEMENT OF RESULTS */}
+            {viewMode === 'bece_result' && (
+              <div className="space-y-5">
+                {studentBeceResult ? (
+                  <div className="bg-white rounded-3xl p-6 sm:p-8 shadow-sm border-2 border-amber-300 relative space-y-6">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-5 border-b border-slate-200">
+                      <div className="flex items-center gap-3.5">
+                        <div className="w-12 h-12 rounded-2xl bg-amber-400 text-blue-950 flex items-center justify-center font-black shadow-xs shrink-0">
+                          <Award className="w-6 h-6" />
+                        </div>
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <span className="px-2.5 py-0.5 rounded-full bg-amber-100 text-amber-950 text-[10px] font-black uppercase tracking-wider border border-amber-300">
+                              Official BECE Board Statement
+                            </span>
+                            <span className="text-xs text-slate-500 font-mono">
+                              Candidate No: <strong className="text-blue-950 font-black">{studentBeceResult.candidateNumber || 'Allocated'}</strong>
+                            </span>
+                          </div>
+                          <h3 className="text-lg sm:text-xl font-black text-slate-900 mt-0.5">
+                            {studentBeceResult.title}
+                          </h3>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-2 shrink-0">
+                        <button
+                          type="button"
+                          onClick={() => setModalExamResult(studentBeceResult)}
+                          className="px-4 py-2.5 rounded-xl bg-blue-900 hover:bg-blue-950 text-white font-bold text-xs shadow-sm transition flex items-center gap-1.5 cursor-pointer"
+                        >
+                          <Printer className="w-4 h-4 text-amber-400" />
+                          <span>Full Screen Slip & Print</span>
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Candidate & Board Info Grid */}
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 p-4 rounded-2xl bg-slate-50 border border-slate-200 text-xs">
+                      <div>
+                        <span className="block text-[10px] font-black uppercase text-slate-400">Examination Body</span>
+                        <span className="font-bold text-slate-800">{studentBeceResult.examinationBody || 'NECO BECE Board'}</span>
+                      </div>
+                      <div>
+                        <span className="block text-[10px] font-black uppercase text-slate-400">Session & Diet</span>
+                        <span className="font-bold text-slate-800">{studentBeceResult.session}</span>
+                      </div>
+                      <div>
+                        <span className="block text-[10px] font-black uppercase text-slate-400">Exam Center</span>
+                        <span className="font-bold text-slate-800 truncate block">{studentBeceResult.centerName || `${schoolInfo.name} Hall`}</span>
+                      </div>
+                      <div>
+                        <span className="block text-[10px] font-black uppercase text-slate-400">Overall Evaluation</span>
+                        <span className="font-black text-emerald-800">{studentBeceResult.overallScore || 'Passed with Distinction'}</span>
+                      </div>
+                    </div>
+
+                    {/* Custom Subjects Breakdown */}
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between">
+                        <h4 className="text-xs font-black uppercase tracking-wider text-slate-900 flex items-center gap-1.5">
+                          <BookOpen className="w-4 h-4 text-amber-600" />
+                          <span>Authenticated Subject Marks & Grades ({studentBeceResult.subjectBreakdown?.length || 0} Subjects):</span>
+                        </h4>
+                        <span className="text-[11px] font-bold text-slate-500">
+                          Permanent Board Record
+                        </span>
+                      </div>
+
+                      <div className="border border-slate-200 rounded-2xl overflow-hidden shadow-xs">
+                        <table className="w-full border-collapse text-xs">
+                          <thead>
+                            <tr className="bg-blue-900 text-white font-black text-center text-[11px] uppercase tracking-wider">
+                              <th className="py-2.5 px-3 w-12">#</th>
+                              <th className="py-2.5 px-3 text-left">Exam Subject</th>
+                              <th className="py-2.5 px-3 w-28">Score (/100)</th>
+                              <th className="py-2.5 px-3 w-24">Grade</th>
+                              <th className="py-2.5 px-3 w-40 text-left">Classification</th>
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-slate-200 bg-white">
+                            {(studentBeceResult.subjectBreakdown || []).map((sub, idx) => (
+                              <tr key={idx} className="hover:bg-amber-50/30 transition-colors">
+                                <td className="py-2.5 px-3 text-center font-bold text-slate-400">{idx + 1}</td>
+                                <td className="py-2.5 px-3 font-bold text-slate-900">{sub.subject}</td>
+                                <td className="py-2.5 px-3 text-center font-mono font-bold text-blue-900">{sub.score || '—'}</td>
+                                <td className="py-2.5 px-3 text-center">
+                                  <span className="px-2.5 py-0.5 rounded-lg bg-emerald-100 text-emerald-900 font-black border border-emerald-300">
+                                    {sub.grade || 'A'}
+                                  </span>
+                                </td>
+                                <td className="py-2.5 px-3 font-semibold text-slate-700">{sub.remark || 'Distinction'}</td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+
+                    {/* Official Remarks & Placement */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      {studentBeceResult.placementStatus && (
+                        <div className="p-4 rounded-2xl bg-emerald-50 border border-emerald-200 space-y-1">
+                          <span className="text-[10px] font-black uppercase tracking-wider text-emerald-900">
+                            Senior Secondary Placement Clearance
+                          </span>
+                          <p className="text-sm font-black text-emerald-950">{studentBeceResult.placementStatus}</p>
+                        </div>
+                      )}
+                      <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 space-y-1">
+                        <span className="text-[10px] font-black uppercase tracking-wider text-slate-500">
+                          Registry Comments
+                        </span>
+                        <p className="text-xs text-slate-700 italic">"{studentBeceResult.remarks || 'Result verified and cleared.'}"</p>
+                      </div>
+                    </div>
+
+                    {/* Security Notice */}
+                    <div className="p-3.5 rounded-2xl bg-amber-50 border border-amber-200 text-amber-950 text-xs flex items-center gap-3">
+                      <Lock className="w-5 h-5 text-amber-700 shrink-0" />
+                      <div>
+                        <strong className="block font-bold">Official Examination Board Ledger (Read-Only)</strong>
+                        <p className="text-[11px] text-amber-900 leading-snug">
+                          This statement of results is permanently archived in your portal. In compliance with examination standards, <strong>only authorized School Administrators have credentials to alter or moderate these subjects and grades</strong>.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="bg-white rounded-3xl p-10 text-center shadow-sm border border-slate-200 space-y-3">
+                    <div className="w-12 h-12 mx-auto rounded-2xl bg-amber-100 text-amber-800 flex items-center justify-center font-black">
+                      <Award className="w-6 h-6" />
+                    </div>
+                    <h4 className="font-black text-slate-900 text-base">BECE / Junior WAEC Results Not Yet Posted</h4>
+                    <p className="text-xs text-slate-500 max-w-md mx-auto leading-relaxed">
+                      The School Academic Registry has not yet posted external Basic Education Certificate Examination results for your profile. Once uploaded by the examination office, your certified result slip and custom subjects will remain permanently accessible here.
+                    </p>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* VIEW MODE 4: NATIONAL COMMON ENTRANCE EXAMINATION (NCEE) */}
+            {viewMode === 'ncee_result' && (
+              <div className="space-y-5">
+                {studentNceeResult ? (
+                  <div className="bg-white rounded-3xl p-6 sm:p-8 shadow-sm border-2 border-emerald-300 relative space-y-6">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-5 border-b border-slate-200">
+                      <div className="flex items-center gap-3.5">
+                        <div className="w-12 h-12 rounded-2xl bg-emerald-600 text-white flex items-center justify-center font-black shadow-xs shrink-0">
+                          <Sparkles className="w-6 h-6" />
+                        </div>
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <span className="px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-950 text-[10px] font-black uppercase tracking-wider border border-emerald-300">
+                              National Common Entrance (NCEE)
+                            </span>
+                            <span className="text-xs text-slate-500 font-mono">
+                              Candidate No: <strong className="text-blue-950 font-black">{studentNceeResult.candidateNumber || 'Allocated'}</strong>
+                            </span>
+                          </div>
+                          <h3 className="text-lg sm:text-xl font-black text-slate-900 mt-0.5">
+                            {studentNceeResult.title}
+                          </h3>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-2 shrink-0">
+                        <button
+                          type="button"
+                          onClick={() => setModalExamResult(studentNceeResult)}
+                          className="px-4 py-2.5 rounded-xl bg-emerald-800 hover:bg-emerald-900 text-white font-bold text-xs shadow-sm transition flex items-center gap-1.5 cursor-pointer"
+                        >
+                          <Printer className="w-4 h-4 text-amber-300" />
+                          <span>Full Screen Slip & Print</span>
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Candidate & Board Info Grid */}
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 p-4 rounded-2xl bg-slate-50 border border-slate-200 text-xs">
+                      <div>
+                        <span className="block text-[10px] font-black uppercase text-slate-400">Examination Board</span>
+                        <span className="font-bold text-slate-800">{studentNceeResult.examinationBody || 'National Examinations Council (NECO)'}</span>
+                      </div>
+                      <div>
+                        <span className="block text-[10px] font-black uppercase text-slate-400">Session & Diet</span>
+                        <span className="font-bold text-slate-800">{studentNceeResult.session}</span>
+                      </div>
+                      <div>
+                        <span className="block text-[10px] font-black uppercase text-slate-400">Entrance Aggregate</span>
+                        <span className="font-black text-emerald-800">{studentNceeResult.overallScore || 'Cleared'}</span>
+                      </div>
+                      <div>
+                        <span className="block text-[10px] font-black uppercase text-slate-400">Percentile Standing</span>
+                        <span className="font-bold text-slate-800">{studentNceeResult.aggregate || 'Top Percentile'}</span>
+                      </div>
+                    </div>
+
+                    {/* Custom Subjects Breakdown */}
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between">
+                        <h4 className="text-xs font-black uppercase tracking-wider text-slate-900 flex items-center gap-1.5">
+                          <BookOpen className="w-4 h-4 text-emerald-600" />
+                          <span>Test Papers & Scores Breakdown ({studentNceeResult.subjectBreakdown?.length || 0} Papers):</span>
+                        </h4>
+                        <span className="text-[11px] font-bold text-slate-500">
+                          NECO Standard Assessment
+                        </span>
+                      </div>
+
+                      <div className="border border-slate-200 rounded-2xl overflow-hidden shadow-xs">
+                        <table className="w-full border-collapse text-xs">
+                          <thead>
+                            <tr className="bg-emerald-800 text-white font-black text-center text-[11px] uppercase tracking-wider">
+                              <th className="py-2.5 px-3 w-12">#</th>
+                              <th className="py-2.5 px-3 text-left">Examination Paper</th>
+                              <th className="py-2.5 px-3 w-28">Score (/100)</th>
+                              <th className="py-2.5 px-3 w-24">Grade</th>
+                              <th className="py-2.5 px-3 w-40 text-left">Classification</th>
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-slate-200 bg-white">
+                            {(studentNceeResult.subjectBreakdown || []).map((sub, idx) => (
+                              <tr key={idx} className="hover:bg-emerald-50/30 transition-colors">
+                                <td className="py-2.5 px-3 text-center font-bold text-slate-400">{idx + 1}</td>
+                                <td className="py-2.5 px-3 font-bold text-slate-900">{sub.subject}</td>
+                                <td className="py-2.5 px-3 text-center font-mono font-bold text-emerald-900">{sub.score || '—'}</td>
+                                <td className="py-2.5 px-3 text-center">
+                                  <span className="px-2.5 py-0.5 rounded-lg bg-emerald-100 text-emerald-900 font-black border border-emerald-300">
+                                    {sub.grade || 'A1'}
+                                  </span>
+                                </td>
+                                <td className="py-2.5 px-3 font-semibold text-slate-700">{sub.remark || 'Distinction'}</td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+
+                    {/* Official Remarks & Placement */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      {studentNceeResult.placementStatus && (
+                        <div className="p-4 rounded-2xl bg-emerald-50 border border-emerald-200 space-y-1">
+                          <span className="text-[10px] font-black uppercase tracking-wider text-emerald-900">
+                            Junior Secondary Admission Clearance
+                          </span>
+                          <p className="text-sm font-black text-emerald-950">{studentNceeResult.placementStatus}</p>
+                        </div>
+                      )}
+                      <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 space-y-1">
+                        <span className="text-[10px] font-black uppercase tracking-wider text-slate-500">
+                          Registry Endorsement
+                        </span>
+                        <p className="text-xs text-slate-700 italic">"{studentNceeResult.remarks || 'Result verified and cleared.'}"</p>
+                      </div>
+                    </div>
+
+                    {/* Security Notice */}
+                    <div className="p-3.5 rounded-2xl bg-emerald-50 border border-emerald-200 text-emerald-950 text-xs flex items-center gap-3">
+                      <Lock className="w-5 h-5 text-emerald-700 shrink-0" />
+                      <div>
+                        <strong className="block font-bold">Official Entrance Board Ledger (Read-Only)</strong>
+                        <p className="text-[11px] text-emerald-900 leading-snug">
+                          This entrance examination record is permanently archived in your portal. In compliance with registry standards, <strong>only authorized School Administrators have credentials to alter or moderate these subjects and grades</strong>.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="bg-white rounded-3xl p-10 text-center shadow-sm border border-slate-200 space-y-3">
+                    <div className="w-12 h-12 mx-auto rounded-2xl bg-emerald-100 text-emerald-800 flex items-center justify-center font-black">
+                      <Sparkles className="w-6 h-6" />
+                    </div>
+                    <h4 className="font-black text-slate-900 text-base">National Common Entrance Results Not Yet Posted</h4>
+                    <p className="text-xs text-slate-500 max-w-md mx-auto leading-relaxed">
+                      Official National Common Entrance Examination results for Primary 5 and JSS 1 have not yet been posted by the administration. Once posted, your placement slip and test paper marks will remain permanently accessible here.
+                    </p>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* VIEW MODE 5: ALL OFFICIAL EXTERNAL TRANSCRIPTS & CUSTOM SLIPS */}
+            {viewMode === 'external_results' && (
+              <div className="space-y-4">
+                <div className="bg-white rounded-3xl p-6 shadow-sm border border-slate-200">
+                  <h4 className="font-black text-base text-slate-900 flex items-center gap-2">
+                    <FileArchive className="w-5 h-5 text-blue-800" />
+                    <span>Permanent External Examination Records & Certificates ({studentCustomResults.length})</span>
+                  </h4>
+                  <p className="text-xs text-slate-500 mt-1">
+                    Certified results posted and authenticated by the School Administration. Alterations are restricted to authorized administrators.
+                  </p>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {studentCustomResults.map((res) => (
+                    <div key={res.id} className="bg-white rounded-3xl p-5 shadow-sm border border-slate-200 space-y-3">
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="px-2.5 py-0.5 rounded-full bg-blue-100 text-blue-900 text-[10px] font-black uppercase">
+                          {res.examType || 'External Slip'}
+                        </span>
+                        <span className="text-xs font-mono text-slate-400">
+                          {res.session}
+                        </span>
+                      </div>
+
+                      <h4 className="font-black text-base text-slate-900">{res.title}</h4>
+                      
+                      {res.overallScore && (
+                        <p className="text-xs text-slate-700">
+                          Evaluation: <strong className="text-blue-950 font-bold">{res.overallScore}</strong>
+                        </p>
+                      )}
+
+                      {res.subjectBreakdown && res.subjectBreakdown.length > 0 && (
+                        <div className="flex flex-wrap gap-1">
+                          {res.subjectBreakdown.map((s, i) => (
+                            <span key={i} className="px-2 py-0.5 rounded bg-slate-100 text-[10px] font-bold text-slate-700">
+                              {s.subject}: <strong className="text-blue-900">{s.grade || s.score}</strong>
+                            </span>
+                          ))}
+                        </div>
+                      )}
+
+                      <div className="pt-2 border-t border-slate-100 flex items-center justify-between">
+                        <button
+                          type="button"
+                          onClick={() => setModalExamResult(res)}
+                          className="px-3.5 py-2 rounded-xl bg-blue-900 hover:bg-blue-950 text-white font-bold text-xs transition flex items-center gap-1.5 cursor-pointer"
+                        >
+                          <Eye className="w-3.5 h-3.5 text-amber-400" />
+                          <span>View Certified Slip</span>
+                        </button>
+                        <span className="text-[10px] text-slate-400">
+                          🔒 Locked (Admin only)
+                        </span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
         )}
 
@@ -2421,6 +3103,262 @@ export const StudentPortal: React.FC<StudentPortalProps> = ({ onBackToWebsite })
         {activeTab === 'gallery' && (
           <div className="rounded-3xl overflow-hidden shadow-xs border border-slate-200 bg-white">
             <CampusGallery showAdminControls={false} />
+          </div>
+        )}
+
+        {/* TAB: BECE / JUNIOR WAEC RESULTS (DEDICATED VIEW) */}
+        {activeTab === 'bece' && (
+          <div className="space-y-6">
+            <div className="bg-gradient-to-r from-amber-500 via-amber-600 to-amber-700 text-slate-950 rounded-3xl p-6 shadow-sm border border-amber-400 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+              <div>
+                <span className="px-3 py-1 rounded-full bg-blue-950 text-amber-300 text-xs font-black uppercase tracking-wider">
+                  Basic Education Certificate Examination (BECE) Dossier
+                </span>
+                <h3 className="text-xl sm:text-2xl font-black text-blue-950 mt-1">
+                  BECE / Junior WAEC Certified Results & Distinctions
+                </h3>
+                <p className="text-xs text-blue-950/80 font-bold mt-0.5">
+                  Permanent academic record for JSS 3 through SS 3 scholars and Alumni. Alterations can only be made by the School Administration.
+                </p>
+              </div>
+
+              {studentBeceResult && (
+                <button
+                  type="button"
+                  onClick={() => setModalExamResult(studentBeceResult)}
+                  className="px-4 py-2.5 rounded-xl bg-blue-950 hover:bg-blue-900 text-white font-black text-xs transition flex items-center gap-2 shadow-md cursor-pointer"
+                >
+                  <Printer className="w-4 h-4 text-amber-400" />
+                  <span>Print / Save Official Statement Slip</span>
+                </button>
+              )}
+            </div>
+
+            {studentBeceResult ? (
+              <div className="bg-white rounded-3xl p-6 sm:p-8 shadow-sm border-2 border-amber-300 space-y-6">
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 p-4 rounded-2xl bg-amber-50/60 border border-amber-200 text-xs">
+                  <div>
+                    <span className="block text-[10px] font-black uppercase text-amber-900">Candidate / Exam No</span>
+                    <span className="font-mono font-black text-blue-950 text-sm">{studentBeceResult.candidateNumber || 'Allocated'}</span>
+                  </div>
+                  <div>
+                    <span className="block text-[10px] font-black uppercase text-amber-900">Session & Diet</span>
+                    <span className="font-bold text-slate-800 text-xs">{studentBeceResult.session}</span>
+                  </div>
+                  <div>
+                    <span className="block text-[10px] font-black uppercase text-amber-900">Overall Evaluation</span>
+                    <span className="font-black text-emerald-800 text-xs">{studentBeceResult.overallScore || 'Passed'}</span>
+                  </div>
+                  <div>
+                    <span className="block text-[10px] font-black uppercase text-amber-900">Custom Subjects</span>
+                    <span className="font-bold text-slate-800 text-xs">{studentBeceResult.subjectBreakdown?.length || 0} Subjects Recorded</span>
+                  </div>
+                </div>
+
+                {/* Custom Subjects Breakdown */}
+                <div className="space-y-3">
+                  <h4 className="text-xs font-black uppercase tracking-wider text-slate-900 flex items-center gap-1.5">
+                    <BookOpen className="w-4 h-4 text-amber-600" />
+                    <span>Official Subject Marks & Letter Grades ({studentBeceResult.subjectBreakdown?.length || 0} Subjects):</span>
+                  </h4>
+
+                  <div className="border border-slate-200 rounded-2xl overflow-hidden shadow-xs">
+                    <table className="w-full border-collapse text-xs">
+                      <thead>
+                        <tr className="bg-blue-900 text-white font-black text-center text-[11px] uppercase tracking-wider">
+                          <th className="py-2.5 px-3 w-12">#</th>
+                          <th className="py-2.5 px-3 text-left">Exam Subject</th>
+                          <th className="py-2.5 px-3 w-28">Score (/100)</th>
+                          <th className="py-2.5 px-3 w-24">Grade</th>
+                          <th className="py-2.5 px-3 w-40 text-left">Classification</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-200 bg-white">
+                        {(studentBeceResult.subjectBreakdown || []).map((sub, idx) => (
+                          <tr key={idx} className="hover:bg-amber-50/30 transition-colors">
+                            <td className="py-2.5 px-3 text-center font-bold text-slate-400">{idx + 1}</td>
+                            <td className="py-2.5 px-3 font-bold text-slate-900">{sub.subject}</td>
+                            <td className="py-2.5 px-3 text-center font-mono font-bold text-blue-900">{sub.score || '—'}</td>
+                            <td className="py-2.5 px-3 text-center">
+                              <span className="px-2.5 py-0.5 rounded-lg bg-emerald-100 text-emerald-900 font-black border border-emerald-300">
+                                {sub.grade || 'A'}
+                              </span>
+                            </td>
+                            <td className="py-2.5 px-3 font-semibold text-slate-700">{sub.remark || 'Distinction'}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+
+                {/* Official Remarks & Placement */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  {studentBeceResult.placementStatus && (
+                    <div className="p-4 rounded-2xl bg-emerald-50 border border-emerald-200 space-y-1">
+                      <span className="text-[10px] font-black uppercase tracking-wider text-emerald-900">
+                        Senior Secondary Placement Clearance
+                      </span>
+                      <p className="text-sm font-black text-emerald-950">{studentBeceResult.placementStatus}</p>
+                    </div>
+                  )}
+                  <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 space-y-1">
+                    <span className="text-[10px] font-black uppercase tracking-wider text-slate-500">
+                      Registry Endorsement
+                    </span>
+                    <p className="text-xs text-slate-700 italic">"{studentBeceResult.remarks || 'Result verified and cleared.'}"</p>
+                  </div>
+                </div>
+
+                <div className="p-3.5 rounded-2xl bg-amber-50 border border-amber-200 text-amber-950 text-xs flex items-center gap-3">
+                  <Lock className="w-5 h-5 text-amber-700 shrink-0" />
+                  <div>
+                    <strong className="block font-bold">Official Examination Board Ledger (Read-Only)</strong>
+                    <p className="text-[11px] text-amber-900 leading-snug">
+                      This statement of results is permanently archived in your portal. In compliance with examination standards, <strong>only authorized School Administrators have credentials to alter or moderate these subjects and grades</strong>.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <div className="bg-white rounded-3xl p-10 text-center shadow-sm border border-slate-200 space-y-3">
+                <div className="w-12 h-12 mx-auto rounded-2xl bg-amber-100 text-amber-800 flex items-center justify-center font-black">
+                  <Award className="w-6 h-6" />
+                </div>
+                <h4 className="font-black text-slate-900 text-base">BECE / Junior WAEC Results Not Yet Posted</h4>
+                <p className="text-xs text-slate-500 max-w-md mx-auto leading-relaxed">
+                  The School Academic Registry has not yet posted external Basic Education Certificate Examination results for your profile. Once uploaded by the examination office, your certified result slip and custom subjects will remain permanently accessible here.
+                </p>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* TAB: NATIONAL COMMON ENTRANCE EXAMINATION (NCEE) DEDICATED VIEW */}
+        {activeTab === 'ncee' && (
+          <div className="space-y-6">
+            <div className="bg-gradient-to-r from-emerald-600 via-teal-700 to-emerald-800 text-white rounded-3xl p-6 shadow-sm border border-emerald-500 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+              <div>
+                <span className="px-3 py-1 rounded-full bg-white/20 text-white text-xs font-black uppercase tracking-wider">
+                  National Common Entrance Examination (NCEE) Ledger
+                </span>
+                <h3 className="text-xl sm:text-2xl font-black text-white mt-1">
+                  National Common Entrance & Junior Secondary Placement
+                </h3>
+                <p className="text-xs text-emerald-100 font-bold mt-0.5">
+                  Official entrance record for Primary 5 and JSS 1 scholars. Alterations can only be performed by the School Administration.
+                </p>
+              </div>
+
+              {studentNceeResult && (
+                <button
+                  type="button"
+                  onClick={() => setModalExamResult(studentNceeResult)}
+                  className="px-4 py-2.5 rounded-xl bg-white hover:bg-slate-100 text-emerald-950 font-black text-xs transition flex items-center gap-2 shadow-md cursor-pointer"
+                >
+                  <Printer className="w-4 h-4 text-emerald-700" />
+                  <span>Print / Save Official Placement Slip</span>
+                </button>
+              )}
+            </div>
+
+            {studentNceeResult ? (
+              <div className="bg-white rounded-3xl p-6 sm:p-8 shadow-sm border-2 border-emerald-300 space-y-6">
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 p-4 rounded-2xl bg-emerald-50/60 border border-emerald-200 text-xs">
+                  <div>
+                    <span className="block text-[10px] font-black uppercase text-emerald-900">Candidate / Exam No</span>
+                    <span className="font-mono font-black text-blue-950 text-sm">{studentNceeResult.candidateNumber || 'Allocated'}</span>
+                  </div>
+                  <div>
+                    <span className="block text-[10px] font-black uppercase text-emerald-900">Entrance Aggregate</span>
+                    <span className="font-black text-emerald-800 text-xs">{studentNceeResult.overallScore || 'Cleared'}</span>
+                  </div>
+                  <div>
+                    <span className="block text-[10px] font-black uppercase text-emerald-900">Percentile Standing</span>
+                    <span className="font-bold text-slate-800 text-xs">{studentNceeResult.aggregate || 'Top Percentile'}</span>
+                  </div>
+                  <div>
+                    <span className="block text-[10px] font-black uppercase text-emerald-900">Custom Subjects</span>
+                    <span className="font-bold text-slate-800 text-xs">{studentNceeResult.subjectBreakdown?.length || 0} Test Papers</span>
+                  </div>
+                </div>
+
+                {/* Custom Subjects Breakdown */}
+                <div className="space-y-3">
+                  <h4 className="text-xs font-black uppercase tracking-wider text-slate-900 flex items-center gap-1.5">
+                    <BookOpen className="w-4 h-4 text-emerald-600" />
+                    <span>Test Papers Breakdown & Quantitative Marks ({studentNceeResult.subjectBreakdown?.length || 0} Papers):</span>
+                  </h4>
+
+                  <div className="border border-slate-200 rounded-2xl overflow-hidden shadow-xs">
+                    <table className="w-full border-collapse text-xs">
+                      <thead>
+                        <tr className="bg-emerald-800 text-white font-black text-center text-[11px] uppercase tracking-wider">
+                          <th className="py-2.5 px-3 w-12">#</th>
+                          <th className="py-2.5 px-3 text-left">Examination Paper</th>
+                          <th className="py-2.5 px-3 w-28">Score (/100)</th>
+                          <th className="py-2.5 px-3 w-24">Grade</th>
+                          <th className="py-2.5 px-3 w-40 text-left">Classification</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-200 bg-white">
+                        {(studentNceeResult.subjectBreakdown || []).map((sub, idx) => (
+                          <tr key={idx} className="hover:bg-emerald-50/30 transition-colors">
+                            <td className="py-2.5 px-3 text-center font-bold text-slate-400">{idx + 1}</td>
+                            <td className="py-2.5 px-3 font-bold text-slate-900">{sub.subject}</td>
+                            <td className="py-2.5 px-3 text-center font-mono font-bold text-emerald-900">{sub.score || '—'}</td>
+                            <td className="py-2.5 px-3 text-center">
+                              <span className="px-2.5 py-0.5 rounded-lg bg-emerald-100 text-emerald-900 font-black border border-emerald-300">
+                                {sub.grade || 'A1'}
+                              </span>
+                            </td>
+                            <td className="py-2.5 px-3 font-semibold text-slate-700">{sub.remark || 'Distinction'}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+
+                {/* Official Remarks & Placement */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  {studentNceeResult.placementStatus && (
+                    <div className="p-4 rounded-2xl bg-emerald-50 border border-emerald-200 space-y-1">
+                      <span className="text-[10px] font-black uppercase tracking-wider text-emerald-900">
+                        Junior Secondary Admission Clearance
+                      </span>
+                      <p className="text-sm font-black text-emerald-950">{studentNceeResult.placementStatus}</p>
+                    </div>
+                  )}
+                  <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 space-y-1">
+                    <span className="text-[10px] font-black uppercase tracking-wider text-slate-500">
+                      Registry Endorsement
+                    </span>
+                    <p className="text-xs text-slate-700 italic">"{studentNceeResult.remarks || 'Result verified and cleared.'}"</p>
+                  </div>
+                </div>
+
+                <div className="p-3.5 rounded-2xl bg-emerald-50 border border-emerald-200 text-emerald-950 text-xs flex items-center gap-3">
+                  <Lock className="w-5 h-5 text-emerald-700 shrink-0" />
+                  <div>
+                    <strong className="block font-bold">Official Entrance Board Ledger (Read-Only)</strong>
+                    <p className="text-[11px] text-emerald-900 leading-snug">
+                      This entrance examination record is permanently archived in your portal. In compliance with registry standards, <strong>only authorized School Administrators have credentials to alter or moderate these subjects and grades</strong>.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <div className="bg-white rounded-3xl p-10 text-center shadow-sm border border-slate-200 space-y-3">
+                <div className="w-12 h-12 mx-auto rounded-2xl bg-emerald-100 text-emerald-800 flex items-center justify-center font-black">
+                  <Sparkles className="w-6 h-6" />
+                </div>
+                <h4 className="font-black text-slate-900 text-base">National Common Entrance Results Not Yet Posted</h4>
+                <p className="text-xs text-slate-500 max-w-md mx-auto leading-relaxed">
+                  Official National Common Entrance Examination results for Primary 5 and JSS 1 have not yet been posted by the administration. Once posted, your placement slip and test paper marks will remain permanently accessible here.
+                </p>
+              </div>
+            )}
           </div>
         )}
       </main>

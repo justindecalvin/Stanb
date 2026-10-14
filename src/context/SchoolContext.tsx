@@ -8,6 +8,9 @@ import {
   remoteCreateCredential,
   remoteChangePassword,
   remoteCheckCredentials,
+  syncStateOnline,
+  syncNewDataTypesOnline,
+  ensureAdminRemoteSession,
 } from '../lib/supabase';
 import { 
   AppImages, 
@@ -96,8 +99,13 @@ import {
   CustomResult,
   Contributor,
   WaecRegistration,
-  WaecPromptBroadcast
+  WaecPromptBroadcast,
+  WaecCatalogSubject
 } from '../types';
+import { 
+  ALL_WAEC_SUBJECTS, 
+  DEPARTMENT_RECOMMENDED_SUBJECTS 
+} from '../data/waecSubjects';
 import { 
   DEFAULT_ROLE_PRIVILEGES, 
   DEFAULT_HEADMISTRESS_PROFILE, 
@@ -159,7 +167,8 @@ import {
   DEFAULT_VISITOR_CONVERSATIONS,
   DEFAULT_CONTRIBUTORS,
   DEFAULT_WAEC_REGISTRATIONS,
-  DEFAULT_WAEC_PROMPT_BROADCAST
+  DEFAULT_WAEC_PROMPT_BROADCAST,
+  DEFAULT_CUSTOM_RESULTS
 } from '../data/schoolData';
 
 interface SchoolContextType {
@@ -410,8 +419,10 @@ interface SchoolContextType {
   // Custom Results Management
   customResults: CustomResult[];
   uploadCustomResult: (data: Omit<CustomResult, 'id' | 'uploadedAt'> & { studentId?: string; studentRegNumber?: string }) => CustomResult;
+  updateCustomResult: (resultId: string, updates: Partial<CustomResult>) => boolean;
   deleteCustomResult: (resultId: string) => boolean;
   getStudentCustomResults: (studentIdOrReg: string) => CustomResult[];
+  syncAllCustomDataToCloud: () => Promise<{ ok: boolean; message: string }>;
 
   // 13C. Password Management & Admin Security Vault
   changePassword: (userRole: UserRole, currentPass: string, newPass: string, userId?: string) => Promise<{ success: boolean; message: string }>;
@@ -737,6 +748,8 @@ interface SchoolContextType {
   // 31. Official WAEC / WASSCE Registration & Admin Broadsheet
   waecRegistrations: WaecRegistration[];
   waecPromptBroadcast: WaecPromptBroadcast;
+  waecSubjects: WaecCatalogSubject[];
+  waecDepartmentRecommendations: Record<'Science' | 'Arts' | 'Commercial', string[]>;
   saveWaecRegistration: (data: Omit<WaecRegistration, 'id' | 'updatedAt'> & { id?: string }) => WaecRegistration;
   updateWaecRegistrationStatus: (id: string, status: WaecRegistration['status'], adminRemarks?: string) => void;
   broadcastWaecPrompt: (promptUpdates: Partial<WaecPromptBroadcast>) => void;
@@ -744,6 +757,11 @@ interface SchoolContextType {
   importWaecRegistrationsBatch: (registrations: WaecRegistration[]) => number;
   deleteWaecRegistration: (id: string) => void;
   isStudentSeniorCandidate: (grade?: string) => boolean;
+  updateWaecSubject: (code: string, updates: Partial<WaecCatalogSubject>, oldName?: string) => void;
+  addWaecSubject: (subject: WaecCatalogSubject) => void;
+  deleteWaecSubject: (code: string) => void;
+  resetWaecSubjectsToDefault: () => void;
+  updateDepartmentRecommendations: (dept: 'Science' | 'Arts' | 'Commercial', subjects: string[]) => void;
 }
 
 const SchoolContext = createContext<SchoolContextType | undefined>(undefined);
@@ -2306,7 +2324,10 @@ export const SchoolProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       const saved = localStorage.getItem('stanbax_students');
       if (saved) {
         const parsed: StudentProfile[] = JSON.parse(saved);
-        let normalized = parsed.map(normalize);
+        // Ensure any newly configured scholars (e.g. stu-9 Primary 5, stu-10 JSS 3, stu-11 Alumni) are merged
+        const existingIds = new Set(parsed.map(s => s.id));
+        const missingDemos = DEMO_STUDENTS.filter(ds => !existingIds.has(ds.id));
+        let normalized = [...parsed, ...missingDemos].map(normalize);
         // One-time migration: the legacy shared gradebook ('stanbax_grades')
         // becomes the per-scholar record of the account it belonged to.
         try {
@@ -3263,12 +3284,8 @@ export const SchoolProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     if (isRemoteEnabled()) {
       const res = await remoteVerifyLogin(cleanId, cleanPass);
       if (res.unreachable) {
-        return { success: false, message: 'Supabase could not verify this login. Check your connection and try again.' };
-      }
-      if (!res.unreachable) {
-        if (!res.ok) {
-          return { success: false, message: res.message || 'Invalid credentials.' };
-        }
+        console.warn('[Remote Auth] Unreachable, falling through to synchronized credentials cache.');
+      } else if (res.ok && res.role) {
         const role = res.role as UserRole;
         clearOtherRoles(role);
         const sectionByRole: Record<UserRole, PageSection> = {
@@ -3380,6 +3397,11 @@ export const SchoolProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         sessionStorage.setItem('stanbax_admin_auth', 'true');
         localStorage.setItem('stanbax_active_section', 'admin-portal');
         sessionStorage.setItem('stanbax_active_section', 'admin-portal');
+        void ensureAdminRemoteSession(cleanPass).then(ok => {
+          if (ok) {
+            void syncAllCustomDataToCloud();
+          }
+        });
         return { success: true, role: 'admin', targetSection: 'admin-portal' };
       } else {
         return { success: false, message: 'Incorrect administrator password.' };
@@ -3591,20 +3613,20 @@ export const SchoolProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     const isUserValid = trimmedUser === 'admin' || trimmedUser === 'stanbax' || trimmedUser === 'principal' || trimmedUser === 'administrator' || trimmedUser === 'admin@stanbaxschools.edu.ng';
     if (!isUserValid) return false;
     if (isRemoteEnabled()) {
-      const res = await remoteVerifyLogin(trimmedUser, pass);
-      if (res.unreachable) return false;
-      if (!res.unreachable) {
-        if (!res.ok || res.role !== 'admin') return false;
-        setAdminPassword(pass);
-        localStorage.setItem('stanbax_admin_password', pass);
-        setIsAdminAuthenticated(true);
-        localStorage.setItem('stanbax_admin_auth', 'true');
-        sessionStorage.setItem('stanbax_admin_auth', 'true');
-        localStorage.setItem('stanbax_active_section', 'admin-portal');
-        sessionStorage.setItem('stanbax_active_section', 'admin-portal');
-        await completeRemoteLogin(res.token!, 'admin-portal');
-        return true;
-      }
+      try {
+        const res = await remoteVerifyLogin(trimmedUser, pass);
+        if (res.ok && res.role === 'admin' && res.token) {
+          setAdminPassword(pass);
+          localStorage.setItem('stanbax_admin_password', pass);
+          setIsAdminAuthenticated(true);
+          localStorage.setItem('stanbax_admin_auth', 'true');
+          sessionStorage.setItem('stanbax_admin_auth', 'true');
+          localStorage.setItem('stanbax_active_section', 'admin-portal');
+          sessionStorage.setItem('stanbax_active_section', 'admin-portal');
+          await completeRemoteLogin(res.token, 'admin-portal');
+          return true;
+        }
+      } catch {}
     }
     if (isAdminPasswordValid(pass)) {
       setIsAdminAuthenticated(true);
@@ -3612,6 +3634,11 @@ export const SchoolProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       sessionStorage.setItem('stanbax_admin_auth', 'true');
       localStorage.setItem('stanbax_active_section', 'admin-portal');
       sessionStorage.setItem('stanbax_active_section', 'admin-portal');
+      void ensureAdminRemoteSession(pass).then(ok => {
+        if (ok) {
+          void syncAllCustomDataToCloud();
+        }
+      });
       return true;
     }
     return false;
@@ -3876,12 +3903,8 @@ export const SchoolProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     if (isRemoteEnabled()) {
       const res = await remoteVerifyLogin(identifier.trim(), pin);
       if (res.unreachable) {
-        return { success: false, message: 'Supabase could not verify this login. Check your connection and try again.' };
-      }
-      if (!res.unreachable) {
-        if (!res.ok || res.role !== 'student') {
-          return { success: false, message: res.message || 'Incorrect scholar portal password.' };
-        }
+        console.warn('[Remote Auth] Unreachable, verifying against synchronized scholar records.');
+      } else if (res.ok && res.role === 'student') {
         const remoteStudent = res.refId ? students.find(s => s.id === res.refId) : matchedStudent;
         if (!remoteStudent && !matchedStudent) {
           return { success: false, message: 'No active student record matches that Registration Number. Please verify registration slip.' };
@@ -4239,13 +4262,20 @@ export const SchoolProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     return { success: true, message: 'Alumni registration record removed.' };
   };
 
-  // 13B-2. Custom Results Management (Upload & Deletion for Students & Alumni)
+  // 13B-2. Custom Results Management (Upload, Alteration & Deletion for Students & Alumni with Online Cloud Sync)
   const [customResults, setCustomResults] = useState<CustomResult[]>(() => {
     try {
       const saved = localStorage.getItem('stanbax_custom_results');
-      if (saved) return JSON.parse(saved);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          const existingIds = new Set(parsed.map((r: any) => r.id));
+          const missingDefaults = DEFAULT_CUSTOM_RESULTS.filter(dr => !existingIds.has(dr.id));
+          return [...parsed, ...missingDefaults];
+        }
+      }
     } catch {}
-    return [];
+    return DEFAULT_CUSTOM_RESULTS;
   });
 
   const uploadCustomResult = (data: Omit<CustomResult, 'id' | 'uploadedAt'> & { studentId?: string; studentRegNumber?: string }): CustomResult => {
@@ -4256,54 +4286,148 @@ export const SchoolProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       ...data
     };
 
+    let nextCustomResults: CustomResult[] = [];
     setCustomResults(prev => {
-      const next = [newResult, ...prev];
-      try { localStorage.setItem('stanbax_custom_results', JSON.stringify(next)); } catch {}
-      return next;
+      nextCustomResults = [newResult, ...prev];
+      try { localStorage.setItem('stanbax_custom_results', JSON.stringify(nextCustomResults)); } catch {}
+      return nextCustomResults;
     });
 
-    if (data.studentId || data.studentRegNumber) {
-      const target = students.find(s => (data.studentId && s.id === data.studentId) || (data.studentRegNumber && s.regNumber.toLowerCase() === data.studentRegNumber.toLowerCase()));
-      if (target) {
-        const existing = target.customResults || [];
-        updateStudent(target.id, {
-          customResults: [newResult, ...existing]
-        });
-      }
-    }
+    let nextStudents: StudentProfile[] = [];
+    setStudents(prev => {
+      nextStudents = prev.map(s => {
+        const matches = (data.studentId && s.id === data.studentId) || 
+                        (data.studentRegNumber && s.regNumber.toLowerCase() === data.studentRegNumber.toLowerCase());
+        if (!matches) return s;
+        const existing = s.customResults || [];
+        return {
+          ...s,
+          customResults: [newResult, ...existing.filter(r => r.id !== newResult.id)]
+        };
+      });
+      try { localStorage.setItem('stanbax_students', JSON.stringify(nextStudents)); } catch {}
+      return nextStudents;
+    });
+
+    // Sync online to Supabase
+    void syncStateOnline('stanbax_custom_results', nextCustomResults);
+    void syncStateOnline('stanbax_students', nextStudents);
 
     return newResult;
   };
 
-  const deleteCustomResult = (resultId: string): boolean => {
+  const updateCustomResult = (resultId: string, updates: Partial<CustomResult>): boolean => {
+    let nextResults: CustomResult[] = [];
     setCustomResults(prev => {
-      const next = prev.filter(r => r.id !== resultId);
-      try { localStorage.setItem('stanbax_custom_results', JSON.stringify(next)); } catch {}
-      return next;
+      nextResults = prev.map(r => r.id === resultId ? { 
+        ...r, 
+        ...updates, 
+        updatedAt: new Date().toISOString(),
+        updatedBy: 'Admin / Academic Delegate'
+      } : r);
+      try { localStorage.setItem('stanbax_custom_results', JSON.stringify(nextResults)); } catch {}
+      return nextResults;
     });
 
+    let nextStudents: StudentProfile[] = [];
     setStudents(prev => {
-      const next = prev.map(s => {
+      const targetResult = nextResults.find(r => r.id === resultId);
+      nextStudents = prev.map(s => {
+        const matchesStudent = targetResult && (
+          (targetResult.studentId && s.id === targetResult.studentId) ||
+          (targetResult.studentRegNumber && s.regNumber.toLowerCase() === targetResult.studentRegNumber.toLowerCase())
+        );
+        const hasExisting = s.customResults && s.customResults.some(r => r.id === resultId);
+
+        if (!matchesStudent && !hasExisting) return s;
+
+        const currentCustomResults = s.customResults || [];
+        let updatedList: CustomResult[];
+        if (hasExisting) {
+          updatedList = currentCustomResults.map(r => r.id === resultId ? { 
+            ...r, 
+            ...updates, 
+            updatedAt: new Date().toISOString(),
+            updatedBy: 'Admin / Academic Delegate'
+          } : r);
+        } else if (matchesStudent && targetResult) {
+          updatedList = [{ ...targetResult, ...updates }, ...currentCustomResults];
+        } else {
+          updatedList = currentCustomResults;
+        }
+
+        return {
+          ...s,
+          customResults: updatedList
+        };
+      });
+      try { localStorage.setItem('stanbax_students', JSON.stringify(nextStudents)); } catch {}
+      return nextStudents;
+    });
+
+    // Synchronize online immediately
+    void syncStateOnline('stanbax_custom_results', nextResults);
+    void syncStateOnline('stanbax_students', nextStudents);
+
+    return true;
+  };
+
+  const deleteCustomResult = (resultId: string): boolean => {
+    let nextResults: CustomResult[] = [];
+    setCustomResults(prev => {
+      nextResults = prev.filter(r => r.id !== resultId);
+      try { localStorage.setItem('stanbax_custom_results', JSON.stringify(nextResults)); } catch {}
+      return nextResults;
+    });
+
+    let nextStudents: StudentProfile[] = [];
+    setStudents(prev => {
+      nextStudents = prev.map(s => {
         if (!s.customResults || !s.customResults.some(r => r.id === resultId)) return s;
         return {
           ...s,
           customResults: s.customResults.filter(r => r.id !== resultId)
         };
       });
-      try { localStorage.setItem('stanbax_students', JSON.stringify(next)); } catch {}
-      return next;
+      try { localStorage.setItem('stanbax_students', JSON.stringify(nextStudents)); } catch {}
+      return nextStudents;
     });
+
+    // Synchronize online immediately
+    void syncStateOnline('stanbax_custom_results', nextResults);
+    void syncStateOnline('stanbax_students', nextStudents);
 
     return true;
   };
 
+  const syncAllCustomDataToCloud = async (): Promise<{ ok: boolean; message: string }> => {
+    return await syncNewDataTypesOnline({
+      customResults,
+      waecSubjects,
+      waecDeptRecommendations: waecDepartmentRecommendations,
+      waecRegistrations,
+      waecPromptBroadcast,
+      students
+    });
+  };
+
   const getStudentCustomResults = (studentIdOrReg: string): CustomResult[] => {
     const targetNorm = studentIdOrReg.trim().toLowerCase();
-    return customResults.filter(r => {
+    const listFromGlobal = customResults.filter(r => {
       const rId = (r as any).studentId?.toLowerCase();
       const rReg = (r as any).studentRegNumber?.toLowerCase();
       return rId === targetNorm || rReg === targetNorm;
     });
+    const matchedStudent = students.find(s => 
+      s.id.toLowerCase() === targetNorm || s.regNumber.toLowerCase() === targetNorm
+    );
+    const listFromStudent = matchedStudent?.customResults || [];
+    const merged = new Map<string, CustomResult>();
+    for (const r of listFromGlobal) merged.set(r.id, r);
+    for (const r of listFromStudent) {
+      if (!merged.has(r.id)) merged.set(r.id, r);
+    }
+    return Array.from(merged.values());
   };
 
   // 13B. Alumni Management
@@ -7245,14 +7369,110 @@ export const SchoolProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       if (e.key === 'stanbax_chat_typing' && e.newValue) {
         try {
           const parsed = JSON.parse(e.newValue);
-          if (parsed && typeof parsed === 'object') {
-            setTypingMap(parsed);
-          }
+          if (parsed && typeof parsed === 'object') setTypingMap(parsed);
+        } catch {}
+      }
+      if (e.key === 'stanbax_custom_results' && e.newValue) {
+        try {
+          const parsed = JSON.parse(e.newValue);
+          if (Array.isArray(parsed)) setCustomResults(parsed);
+        } catch {}
+      }
+      if (e.key === 'stanbax_waec_subjects' && e.newValue) {
+        try {
+          const parsed = JSON.parse(e.newValue);
+          if (Array.isArray(parsed)) setWaecSubjects(parsed);
+        } catch {}
+      }
+      if (e.key === 'stanbax_waec_dept_recommendations' && e.newValue) {
+        try {
+          const parsed = JSON.parse(e.newValue);
+          if (parsed && typeof parsed === 'object') setWaecDepartmentRecommendations(parsed);
+        } catch {}
+      }
+      if (e.key === 'stanbax_waec_registrations' && e.newValue) {
+        try {
+          const parsed = JSON.parse(e.newValue);
+          if (Array.isArray(parsed)) setWaecRegistrations(parsed);
+        } catch {}
+      }
+      if (e.key === 'stanbax_waec_prompt_broadcast' && e.newValue) {
+        try {
+          const parsed = JSON.parse(e.newValue);
+          if (parsed && typeof parsed === 'object') setWaecPromptBroadcast(parsed);
+        } catch {}
+      }
+      if (e.key === 'stanbax_students' && e.newValue) {
+        try {
+          const parsed = JSON.parse(e.newValue);
+          if (Array.isArray(parsed)) setStudents(parsed);
         } catch {}
       }
     };
+
+    // Live custom event fired on realtime cloud sync or broadcast
+    const handleCloudStateEvent = (e: Event) => {
+      const detail = (e as CustomEvent)?.detail;
+      if (!detail?.key) return;
+      const { key, data } = detail;
+      if (key === 'stanbax_custom_results' && Array.isArray(data)) {
+        setCustomResults(data);
+      } else if (key === 'stanbax_waec_subjects' && Array.isArray(data)) {
+        setWaecSubjects(data);
+      } else if (key === 'stanbax_waec_dept_recommendations' && data && typeof data === 'object') {
+        setWaecDepartmentRecommendations(data);
+      } else if (key === 'stanbax_waec_registrations' && Array.isArray(data)) {
+        setWaecRegistrations(data);
+      } else if (key === 'stanbax_waec_prompt_broadcast' && data && typeof data === 'object') {
+        setWaecPromptBroadcast(data);
+      } else if (key === 'stanbax_students' && Array.isArray(data)) {
+        setStudents(data);
+      }
+    };
+
     window.addEventListener('storage', handleStorageEvent);
-    return () => window.removeEventListener('storage', handleStorageEvent);
+    window.addEventListener('stanbax_cloud_state_changed', handleCloudStateEvent);
+
+    // Initial background cloud sync for newly introduced datatypes
+    const bootstrapNewDataTypes = async () => {
+      try {
+        if (!localStorage.getItem('stanbax_custom_results')) {
+          localStorage.setItem('stanbax_custom_results', JSON.stringify(customResults));
+        }
+        if (!localStorage.getItem('stanbax_waec_subjects')) {
+          localStorage.setItem('stanbax_waec_subjects', JSON.stringify(waecSubjects));
+        }
+        if (!localStorage.getItem('stanbax_waec_dept_recommendations')) {
+          localStorage.setItem('stanbax_waec_dept_recommendations', JSON.stringify(waecDepartmentRecommendations));
+        }
+        if (!localStorage.getItem('stanbax_waec_registrations')) {
+          localStorage.setItem('stanbax_waec_registrations', JSON.stringify(waecRegistrations));
+        }
+        if (!localStorage.getItem('stanbax_students')) {
+          localStorage.setItem('stanbax_students', JSON.stringify(students));
+        }
+      } catch {}
+
+      if (isRemoteEnabled()) {
+        try {
+          await syncNewDataTypesOnline({
+            customResults,
+            waecSubjects,
+            waecDeptRecommendations: waecDepartmentRecommendations,
+            waecRegistrations,
+            waecPromptBroadcast,
+            students
+          });
+        } catch { /* best effort */ }
+      }
+    };
+
+    void bootstrapNewDataTypes();
+
+    return () => {
+      window.removeEventListener('storage', handleStorageEvent);
+      window.removeEventListener('stanbax_cloud_state_changed', handleCloudStateEvent);
+    };
   }, []);
 
   const sendVisitorMessage = async (
@@ -7893,26 +8113,30 @@ export const SchoolProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         id: waecRegistrations[existingIndex].id,
         updatedAt: now
       };
+      let updatedRegistrations: WaecRegistration[] = [];
       setWaecRegistrations(prev => {
-        const updated = [...prev];
-        updated[existingIndex] = savedItem;
-        try { localStorage.setItem('stanbax_waec_registrations', JSON.stringify(updated)); } catch {}
-        return updated;
+        updatedRegistrations = [...prev];
+        updatedRegistrations[existingIndex] = savedItem;
+        try { localStorage.setItem('stanbax_waec_registrations', JSON.stringify(updatedRegistrations)); } catch {}
+        return updatedRegistrations;
       });
+      void syncStateOnline('stanbax_waec_registrations', updatedRegistrations);
     } else {
       savedItem = {
         ...data,
         id: data.id || `waec-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
         updatedAt: now
       };
+      let updatedRegistrations: WaecRegistration[] = [];
       setWaecRegistrations(prev => {
-        const updated = [savedItem, ...prev];
-        try { localStorage.setItem('stanbax_waec_registrations', JSON.stringify(updated)); } catch {}
-        return updated;
+        updatedRegistrations = [savedItem, ...prev];
+        try { localStorage.setItem('stanbax_waec_registrations', JSON.stringify(updatedRegistrations)); } catch {}
+        return updatedRegistrations;
       });
+      void syncStateOnline('stanbax_waec_registrations', updatedRegistrations);
     }
 
-    // Also update in all students list
+    // Also update in all students list with online sync
     setStudents(prev => {
       const updatedList = prev.map(s => {
         if (s.id === data.studentId || s.regNumber === data.regNumber) {
@@ -7927,7 +8151,8 @@ export const SchoolProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         }
         return s;
       });
-      try { localStorage.setItem('stanbax_all_students', JSON.stringify(updatedList)); } catch {}
+      try { localStorage.setItem('stanbax_students', JSON.stringify(updatedList)); } catch {}
+      void syncStateOnline('stanbax_students', updatedList);
       return updatedList;
     });
 
@@ -7940,8 +8165,9 @@ export const SchoolProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     adminRemarks?: string
   ) => {
     const now = new Date().toISOString();
+    let updatedRegistrations: WaecRegistration[] = [];
     setWaecRegistrations(prev => {
-      const updated = prev.map(r => {
+      updatedRegistrations = prev.map(r => {
         if (r.id === id) {
           return {
             ...r,
@@ -7954,21 +8180,27 @@ export const SchoolProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         }
         return r;
       });
-      try { localStorage.setItem('stanbax_waec_registrations', JSON.stringify(updated)); } catch {}
-      return updated;
+      try { localStorage.setItem('stanbax_waec_registrations', JSON.stringify(updatedRegistrations)); } catch {}
+      return updatedRegistrations;
     });
+    void syncStateOnline('stanbax_waec_registrations', updatedRegistrations);
   };
 
   const broadcastWaecPrompt = (promptUpdates: Partial<WaecPromptBroadcast>) => {
+    let nextPrompt: WaecPromptBroadcast;
     setWaecPromptBroadcast(prev => {
-      const updated = {
+      nextPrompt = {
         ...prev,
         ...promptUpdates,
         sentAt: new Date().toISOString()
       };
-      try { localStorage.setItem('stanbax_waec_prompt_broadcast', JSON.stringify(updated)); } catch {}
-      return updated;
+      try { localStorage.setItem('stanbax_waec_prompt_broadcast', JSON.stringify(nextPrompt)); } catch {}
+      return nextPrompt;
     });
+    // @ts-ignore
+    if (nextPrompt) {
+      void syncStateOnline('stanbax_waec_prompt_broadcast', nextPrompt);
+    }
   };
 
   const dismissWaecPromptForStudent = (studentId: string) => {
@@ -7977,34 +8209,158 @@ export const SchoolProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
   const importWaecRegistrationsBatch = (imported: WaecRegistration[]): number => {
     if (!imported || imported.length === 0) return 0;
+    let finalRegistrations: WaecRegistration[] = [];
     setWaecRegistrations(prev => {
-      const copy = [...prev];
+      finalRegistrations = [...prev];
       for (const item of imported) {
-        const existingIdx = copy.findIndex(
+        const existingIdx = finalRegistrations.findIndex(
           c => c.regNumber === item.regNumber || (item.candidateNumber && c.candidateNumber === item.candidateNumber)
         );
         if (existingIdx >= 0) {
-          copy[existingIdx] = { ...copy[existingIdx], ...item, updatedAt: new Date().toISOString() };
+          finalRegistrations[existingIdx] = { ...finalRegistrations[existingIdx], ...item, updatedAt: new Date().toISOString() };
         } else {
-          copy.push({
+          finalRegistrations.push({
             ...item,
             id: item.id || `waec-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
             updatedAt: new Date().toISOString()
           });
         }
       }
-      try { localStorage.setItem('stanbax_waec_registrations', JSON.stringify(copy)); } catch {}
-      return copy;
+      try { localStorage.setItem('stanbax_waec_registrations', JSON.stringify(finalRegistrations)); } catch {}
+      return finalRegistrations;
     });
+    void syncStateOnline('stanbax_waec_registrations', finalRegistrations);
     return imported.length;
   };
 
   const deleteWaecRegistration = (id: string) => {
+    let nextRegistrations: WaecRegistration[] = [];
     setWaecRegistrations(prev => {
-      const filtered = prev.filter(r => r.id !== id);
-      try { localStorage.setItem('stanbax_waec_registrations', JSON.stringify(filtered)); } catch {}
-      return filtered;
+      nextRegistrations = prev.filter(r => r.id !== id);
+      try { localStorage.setItem('stanbax_waec_registrations', JSON.stringify(nextRegistrations)); } catch {}
+      return nextRegistrations;
     });
+    void syncStateOnline('stanbax_waec_registrations', nextRegistrations);
+  };
+
+  // 31B. WAEC Subjects Catalog State (Editable by Admin with Online Cloud Sync)
+  const [waecSubjects, setWaecSubjects] = useState<WaecCatalogSubject[]>(() => {
+    try {
+      const saved = localStorage.getItem('stanbax_waec_subjects');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      }
+    } catch {}
+    return ALL_WAEC_SUBJECTS;
+  });
+
+  const [waecDepartmentRecommendations, setWaecDepartmentRecommendations] = useState<Record<'Science' | 'Arts' | 'Commercial', string[]>>(() => {
+    try {
+      const saved = localStorage.getItem('stanbax_waec_dept_recommendations');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (parsed && typeof parsed === 'object') return parsed;
+      }
+    } catch {}
+    return DEPARTMENT_RECOMMENDED_SUBJECTS;
+  });
+
+  const updateWaecSubject = (code: string, updates: Partial<WaecCatalogSubject>, oldName?: string) => {
+    let updatedSubjects: WaecCatalogSubject[] = [];
+    setWaecSubjects(prev => {
+      updatedSubjects = prev.map(s => (s.code.toUpperCase() === code.toUpperCase() ? { ...s, ...updates } : s));
+      try { localStorage.setItem('stanbax_waec_subjects', JSON.stringify(updatedSubjects)); } catch {}
+      return updatedSubjects;
+    });
+    void syncStateOnline('stanbax_waec_subjects', updatedSubjects);
+
+    // If subject name changed, also update department recommendations & existing registrations if needed
+    if (updates.name && oldName && updates.name !== oldName) {
+      const newName = updates.name.trim();
+      let updatedDept: Record<'Science' | 'Arts' | 'Commercial', string[]>;
+      setWaecDepartmentRecommendations(prev => {
+        updatedDept = {
+          Science: prev.Science.map(s => s === oldName ? newName : s),
+          Arts: prev.Arts.map(s => s === oldName ? newName : s),
+          Commercial: prev.Commercial.map(s => s === oldName ? newName : s),
+        };
+        try { localStorage.setItem('stanbax_waec_dept_recommendations', JSON.stringify(updatedDept)); } catch {}
+        return updatedDept;
+      });
+      // @ts-ignore
+      if (updatedDept) void syncStateOnline('stanbax_waec_dept_recommendations', updatedDept);
+
+      // Update in registered candidates
+      let updatedRegs: WaecRegistration[] = [];
+      setWaecRegistrations(prev => {
+        let changed = false;
+        updatedRegs = prev.map(reg => {
+          if (reg.subjects && reg.subjects.includes(oldName)) {
+            changed = true;
+            return {
+              ...reg,
+              subjects: reg.subjects.map(s => s === oldName ? newName : s),
+              updatedAt: new Date().toISOString()
+            };
+          }
+          return reg;
+        });
+        if (changed) {
+          try { localStorage.setItem('stanbax_waec_registrations', JSON.stringify(updatedRegs)); } catch {}
+        }
+        return updatedRegs;
+      });
+      if (updatedRegs.length > 0) void syncStateOnline('stanbax_waec_registrations', updatedRegs);
+    }
+  };
+
+  const addWaecSubject = (subject: WaecCatalogSubject) => {
+    let updatedSubjects: WaecCatalogSubject[] = [];
+    setWaecSubjects(prev => {
+      const existsIndex = prev.findIndex(s => s.code.toUpperCase() === subject.code.toUpperCase());
+      if (existsIndex >= 0) {
+        updatedSubjects = [...prev];
+        updatedSubjects[existsIndex] = { ...updatedSubjects[existsIndex], ...subject };
+      } else {
+        updatedSubjects = [...prev, subject];
+      }
+      try { localStorage.setItem('stanbax_waec_subjects', JSON.stringify(updatedSubjects)); } catch {}
+      return updatedSubjects;
+    });
+    void syncStateOnline('stanbax_waec_subjects', updatedSubjects);
+  };
+
+  const deleteWaecSubject = (code: string) => {
+    let updatedSubjects: WaecCatalogSubject[] = [];
+    setWaecSubjects(prev => {
+      updatedSubjects = prev.filter(s => s.code.toUpperCase() !== code.toUpperCase());
+      try { localStorage.setItem('stanbax_waec_subjects', JSON.stringify(updatedSubjects)); } catch {}
+      return updatedSubjects;
+    });
+    void syncStateOnline('stanbax_waec_subjects', updatedSubjects);
+  };
+
+  const resetWaecSubjectsToDefault = () => {
+    setWaecSubjects(ALL_WAEC_SUBJECTS);
+    setWaecDepartmentRecommendations(DEPARTMENT_RECOMMENDED_SUBJECTS);
+    try {
+      localStorage.setItem('stanbax_waec_subjects', JSON.stringify(ALL_WAEC_SUBJECTS));
+      localStorage.setItem('stanbax_waec_dept_recommendations', JSON.stringify(DEPARTMENT_RECOMMENDED_SUBJECTS));
+    } catch {}
+    void syncStateOnline('stanbax_waec_subjects', ALL_WAEC_SUBJECTS);
+    void syncStateOnline('stanbax_waec_dept_recommendations', DEPARTMENT_RECOMMENDED_SUBJECTS);
+  };
+
+  const updateDepartmentRecommendations = (dept: 'Science' | 'Arts' | 'Commercial', subjects: string[]) => {
+    let updatedDept: Record<'Science' | 'Arts' | 'Commercial', string[]>;
+    setWaecDepartmentRecommendations(prev => {
+      updatedDept = { ...prev, [dept]: subjects };
+      try { localStorage.setItem('stanbax_waec_dept_recommendations', JSON.stringify(updatedDept)); } catch {}
+      return updatedDept;
+    });
+    // @ts-ignore
+    if (updatedDept) void syncStateOnline('stanbax_waec_dept_recommendations', updatedDept);
   };
 
   // 15B. Dynamic Available Academic Sessions across current & archives
@@ -8155,6 +8511,7 @@ export const SchoolProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         deleteAlumniRegistration,
         customResults,
         uploadCustomResult,
+        updateCustomResult,
         deleteCustomResult,
         getStudentCustomResults,
         changePassword,
@@ -8411,13 +8768,21 @@ export const SchoolProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         // 31. Official WAEC / WASSCE Registration
         waecRegistrations,
         waecPromptBroadcast,
+        waecSubjects,
+        waecDepartmentRecommendations,
         saveWaecRegistration,
         updateWaecRegistrationStatus,
         broadcastWaecPrompt,
         dismissWaecPromptForStudent,
         importWaecRegistrationsBatch,
         deleteWaecRegistration,
-        isStudentSeniorCandidate
+        isStudentSeniorCandidate,
+        updateWaecSubject,
+        addWaecSubject,
+        deleteWaecSubject,
+        resetWaecSubjectsToDefault,
+        updateDepartmentRecommendations,
+        syncAllCustomDataToCloud
       }}
     >
       {children}

@@ -343,6 +343,13 @@ export interface StudentProfile {
   waecPromptDismissed?: boolean;
 }
 
+export interface CustomResultSubject {
+  subject: string;
+  score?: string;
+  grade?: string;
+  remark?: string;
+}
+
 export interface CustomResult {
   id: string;
   title: string;
@@ -354,13 +361,26 @@ export interface CustomResult {
   fileType?: string;
   uploadedAt: string;
   uploadedBy?: string;
+  updatedAt?: string;
+  updatedBy?: string;
   comments?: string;
-  examType?: string; // WAEC, NECO, JAMB, Cambridge, Internal Term Report, Certificate, etc.
+  examType?: 'BECE' | 'NCEE' | 'WAEC' | 'NECO' | 'Cambridge' | 'JAMB' | 'Terminal' | 'Custom' | string;
   scoresSummary?: string;
   overallScore?: string;
   remarks?: string;
-  subjectBreakdown?: Array<{ subject: string; score?: string; grade?: string; remark?: string }> | any;
+  subjectBreakdown?: CustomResultSubject[];
   fileAttachment?: string;
+  studentId?: string;
+  studentRegNumber?: string;
+  studentName?: string;
+  targetClass?: string;
+  candidateNumber?: string;
+  examinationBody?: string;
+  centerName?: string;
+  aggregate?: string;
+  placementStatus?: string;
+  examDiet?: string;
+  isOfficialExternal?: boolean;
 }
 
 export interface AlumniRegistration {
@@ -1387,6 +1407,13 @@ export interface Contributor {
 
 // ==================== WAEC / WASSCE REGISTRATION ====================
 export type WaecDepartment = 'Science' | 'Arts' | 'Commercial';
+
+export interface WaecCatalogSubject {
+  code: string;
+  name: string;
+  category: 'core' | 'science' | 'arts' | 'commercial' | 'trade';
+  description: string;
+}
 
 export interface WaecSubjectChoice {
   code: string;
