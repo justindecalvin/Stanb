@@ -49,11 +49,12 @@ import { AdminCampusGalleryTab } from './admin/AdminCampusGalleryTab';
 import { AdminVisitorInquiriesSubTab } from './admin/AdminVisitorInquiriesSubTab';
 import { AdminRolePrivilegesTab } from './admin/AdminRolePrivilegesTab';
 import { AdminContributorsTab } from './admin/AdminContributorsTab';
+import { AdminWaecRegistrationTab } from './admin/AdminWaecRegistrationTab';
 import { SchoolChatSystem } from '../chat/SchoolChatSystem';
 import { SchoolPrefectBadgesModal } from '../chat/ChatLeadershipModals';
 import { NetlifyCloudSyncModal } from './admin/NetlifyCloudSyncModal';
 import { isRemoteEnabled } from '../../lib/supabase';
-import { Bot, Newspaper, Compass, Database, HeartHandshake } from 'lucide-react';
+import { Bot, Newspaper, Compass, Database, HeartHandshake, ClipboardCheck } from 'lucide-react';
 
 interface AdminPortalProps {
   onBackToWebsite: () => void;
@@ -68,6 +69,7 @@ type AdminTab =
   | 'calendar'
   | 'gallery'
   | 'students'
+  | 'waec'
   | 'faculty'
   | 'assignments'
   | 'classes'
@@ -94,12 +96,14 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onBackToWebsite }) => 
     attendanceRecords,
     termResumptionConfig,
     consultationRequests,
-    visitorConversations
+    visitorConversations,
+    waecRegistrations
   } = useSchool();
 
   const pendingConsultationsCount = consultationRequests.filter(c => c.status === 'Pending').length;
   const availableTokensCount = calvinTokens.filter(t => t.status === 'unused').length;
   const unreadVisitorInquiriesCount = visitorConversations?.filter(c => c.unreadByAdmin).length || 0;
+  const pendingWaecCount = waecRegistrations?.filter(r => r.status === 'submitted').length || 0;
 
   const [activeTab, setActiveTab] = useState<AdminTab>('overview');
   const [adminChatTab, setAdminChatTab] = useState<'rep_desk' | 'channels'>('rep_desk');
@@ -126,6 +130,12 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onBackToWebsite }) => 
     { id: 'calendar', label: 'Term Calendar & Events', icon: Calendar },
     { id: 'gallery', label: 'Campus Gallery & Photos', icon: Camera, badge: `${galleryPhotos?.length || 0} Photos` },
     { id: 'students', label: 'Scholars & Alumni', icon: GraduationCap, badge: students.length },
+    { 
+      id: 'waec', 
+      label: 'WAEC / WASSCE & Bio-Data', 
+      icon: ClipboardCheck, 
+      badge: pendingWaecCount > 0 ? `${pendingWaecCount} New` : (waecRegistrations?.length ? `${waecRegistrations.length}` : undefined) 
+    },
     { id: 'faculty', label: 'Faculty Staff', icon: Users, badge: tutors.length },
     { id: 'assignments', label: 'Tutor & Principal Roles', icon: BookOpen },
     { id: 'classes', label: 'Classes & Fees', icon: SchoolIcon, badge: classes.length },
@@ -523,6 +533,7 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onBackToWebsite }) => 
           {activeTab === 'calendar' && <AdminSchoolCalendarTab />}
           {activeTab === 'gallery' && <AdminCampusGalleryTab />}
           {activeTab === 'students' && <AdminStudentsAlumniTab />}
+          {activeTab === 'waec' && <AdminWaecRegistrationTab />}
           {activeTab === 'faculty' && <AdminFacultyTab />}
           {activeTab === 'assignments' && <AdminTutorAssignmentsTab />}
           {activeTab === 'classes' && <AdminClassesFeesTab />}

@@ -47,10 +47,12 @@ import { StudentTimetableTab } from './student/StudentTimetableTab';
 import { StudentSickBayTab } from './student/StudentSickBayTab';
 import { StudentIdCardModal } from './student/StudentIdCardModal';
 import { StudentCalvinAiTab } from './student/StudentCalvinAiTab';
+import { StudentWaecRegistrationTab } from './student/StudentWaecRegistrationTab';
+import { WaecPromptModal } from './student/WaecPromptModal';
 import { SchoolChatSystem } from '../chat/SchoolChatSystem';
 import { CampusGallery } from '../CampusGallery';
 import { SchoolLogo } from '../SchoolLogo';
-import { Bot, Crown } from 'lucide-react';
+import { Bot, Crown, FileArchive, ClipboardList } from 'lucide-react';
 
 interface StudentPortalProps {
   onBackToWebsite: () => void;
@@ -82,8 +84,26 @@ export const StudentPortal: React.FC<StudentPortalProps> = ({ onBackToWebsite })
     getTotalUnreadCount,
     officialSignatures,
     calculateGpa,
-    isCgpaActiveForClass
+    isCgpaActiveForClass,
+    waecRegistrations,
+    waecPromptBroadcast,
+    dismissWaecPromptForStudent
   } = useSchool();
+
+  const isSeniorSecondaryWaec = /SSS?\s*[23]/i.test(student.grade || '');
+  const currentWaecRegistration = waecRegistrations?.find(
+    r => r.studentId === student.id || r.regNumber === student.regNumber
+  ) || student.waecRegistration;
+
+  const [showWaecAutoModal, setShowWaecAutoModal] = useState<boolean>(() => {
+    if (!isSeniorSecondaryWaec) return false;
+    if (!waecPromptBroadcast?.isActive) return false;
+    if (student.waecPromptDismissed) return false;
+    if (!currentWaecRegistration || currentWaecRegistration.status === 'draft' || currentWaecRegistration.status === 'queried') {
+      return true;
+    }
+    return false;
+  });
 
   const studentChatUnread = getTotalUnreadCount(student.id);
 
@@ -140,7 +160,7 @@ export const StudentPortal: React.FC<StudentPortalProps> = ({ onBackToWebsite })
     );
   }
 
-  const [activeTab, setActiveTab] = useState<'overview' | 'chat' | 'calvin_ai' | 'notes' | 'cbt' | 'library' | 'sciencelab' | 'homework' | 'grades' | 'timetable' | 'sickbay' | 'gallery'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'chat' | 'calvin_ai' | 'notes' | 'cbt' | 'library' | 'sciencelab' | 'homework' | 'grades' | 'timetable' | 'sickbay' | 'gallery' | 'waec'>('overview');
   const [isSideMenuOpen, setIsSideMenuOpen] = useState(false);
   const [isIdCardOpen, setIsIdCardOpen] = useState(false);
 
@@ -601,6 +621,22 @@ export const StudentPortal: React.FC<StudentPortalProps> = ({ onBackToWebsite })
       icon: Award,
       description: 'Interactive timed WAEC/NECO multiple-choice tests with instant auto-grading'
     },
+    ...(isSeniorSecondaryWaec ? [{
+      id: 'waec' as const, 
+      label: 'WAEC Bio-Data & 9 Subjects', 
+      badge: currentWaecRegistration?.status === 'verified' 
+        ? 'Verified' 
+        : currentWaecRegistration?.status === 'submitted'
+        ? 'Submitted'
+        : 'Action Required',
+      badgeColor: currentWaecRegistration?.status === 'verified'
+        ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30'
+        : currentWaecRegistration?.status === 'submitted'
+        ? 'bg-blue-400/20 text-blue-300 border-blue-400/30'
+        : 'bg-rose-500/20 text-rose-300 border-rose-500/30 animate-pulse',
+      icon: Award,
+      description: 'Official WASSCE bio-data, 3 compulsory core + 6 electives (9 subjects total), and candidate ZIP package'
+    }] : []),
     { 
       id: 'library' as const, 
       label: 'Digital Library & E-Textbooks', 
@@ -1236,8 +1272,81 @@ export const StudentPortal: React.FC<StudentPortalProps> = ({ onBackToWebsite })
                 </div>
               )}
 
+              {/* WAEC / WASSCE Bio-Data & 9-Subject Registration Prompt Banner for SS2 & SS3 Students */}
+              {isSeniorSecondaryWaec && (
+                <div className={`rounded-3xl p-5 sm:p-6 shadow-md border-2 relative overflow-hidden transition-all ${
+                  currentWaecRegistration?.status === 'verified'
+                    ? 'bg-linear-to-r from-emerald-950 via-teal-950 to-stone-900 border-emerald-500/50 text-white'
+                    : currentWaecRegistration?.status === 'submitted'
+                    ? 'bg-linear-to-r from-blue-950 via-indigo-950 to-stone-900 border-blue-400/50 text-white'
+                    : 'bg-linear-to-r from-amber-500/15 via-rose-500/10 to-amber-500/20 border-amber-400/80 text-stone-900'
+                }`}>
+                  <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-5 relative z-10">
+                    <div className="space-y-2 max-w-xl">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="px-3 py-1 rounded-full bg-emerald-700 text-white text-[10px] font-black uppercase tracking-wider flex items-center gap-1.5 shadow-xs">
+                          <Award className="w-3.5 h-3.5 text-amber-300" />
+                          <span>Official WAEC Portal &bull; {student.grade}</span>
+                        </span>
+                        <span className={`text-[10px] font-extrabold px-2.5 py-0.5 rounded-full ${
+                          currentWaecRegistration?.status === 'verified'
+                            ? 'bg-emerald-400/20 text-emerald-300 border border-emerald-400/30'
+                            : currentWaecRegistration?.status === 'submitted'
+                            ? 'bg-blue-400/20 text-blue-300 border border-blue-400/30'
+                            : 'bg-rose-500 text-white animate-pulse'
+                        }`}>
+                          {currentWaecRegistration?.status === 'verified'
+                            ? '✓ Bio-Data Verified'
+                            : currentWaecRegistration?.status === 'submitted'
+                            ? '⏳ Submitted (Pending Clearance)'
+                            : '⚠️ Mandatory Registration Required'}
+                        </span>
+                        {waecPromptBroadcast?.deadline && (
+                          <span className="text-[10px] font-bold text-amber-300 bg-amber-950/60 px-2 py-0.5 rounded-lg border border-amber-500/30">
+                            Deadline: {new Date(waecPromptBroadcast.deadline).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}
+                          </span>
+                        )}
+                      </div>
+
+                      <h4 className={`font-black text-base ${
+                        currentWaecRegistration?.status === 'verified' || currentWaecRegistration?.status === 'submitted'
+                          ? 'text-white'
+                          : 'text-stone-900'
+                      }`}>
+                        {currentWaecRegistration?.status === 'verified'
+                          ? 'Your Official WAEC Bio-Data & 9 Subjects Are Fully Cleared'
+                          : currentWaecRegistration?.status === 'submitted'
+                          ? 'WAEC Bio-Data Submitted — Awaiting Final Examination Office Verification'
+                          : 'Mandatory: Submit WAEC Bio-Data, National NIN & 9 Subjects'}
+                      </h4>
+
+                      <p className={`text-xs leading-relaxed ${
+                        currentWaecRegistration?.status === 'verified' || currentWaecRegistration?.status === 'submitted'
+                          ? 'text-stone-300'
+                          : 'text-stone-700'
+                      }`}>
+                        {currentWaecRegistration?.status === 'verified'
+                          ? `Official Candidate Index No: ${currentWaecRegistration.candidateNumber || 'Allocated'}. You can download your complete registration package (broadsheet, bio-data & photo) in a ZIP file.`
+                          : 'All SS 2 and SS 3 scholars must provide: Surname, First name, Middle name, DOB, Gender, State, LGA, Religion, Phone, 11-digit NIN, Home Address, Email, Department, and select 9 subjects (English, Maths, Civic + 6 electives).'}
+                      </p>
+                    </div>
+
+                    <div className="flex flex-col sm:flex-row items-center gap-2.5 shrink-0 w-full sm:w-auto">
+                      <button
+                        type="button"
+                        onClick={() => setActiveTab('waec')}
+                        className="w-full sm:w-auto px-5 py-3 rounded-2xl bg-amber-400 hover:bg-amber-300 text-stone-950 font-black text-xs shadow-md transition flex items-center justify-center gap-2 cursor-pointer active:scale-95"
+                      >
+                        <Award className="w-4 h-4" />
+                        <span>{currentWaecRegistration ? 'Open WAEC Bio-Data & Slip' : 'Fill WAEC Details Now →'}</span>
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
+
               {/* Calvin AI Companion Banner */}
-              <div className="bg-gradient-to-r from-indigo-900 via-purple-900 to-blue-950 text-white rounded-3xl p-5 sm:p-6 shadow-sm border border-purple-500/20 relative overflow-hidden flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <div className="bg-linear-to-r from-indigo-900 via-purple-900 to-blue-950 text-white rounded-3xl p-5 sm:p-6 shadow-xs border border-purple-500/20 relative overflow-hidden flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <div className="relative z-10 flex items-center gap-4">
                   <div className="w-12 h-12 rounded-2xl bg-indigo-500/20 border border-indigo-400/30 flex items-center justify-center shrink-0">
                     <Bot className="w-7 h-7 text-indigo-300 animate-pulse" />
@@ -1431,6 +1540,11 @@ export const StudentPortal: React.FC<StudentPortalProps> = ({ onBackToWebsite })
         {/* TAB: CBT EXAMINATION & MOCK PRACTICE */}
         {activeTab === 'cbt' && (
           <StudentCbtTab />
+        )}
+
+        {/* TAB: WAEC / WASSCE BIO-DATA & 9 SUBJECTS REGISTRATION */}
+        {activeTab === 'waec' && (
+          <StudentWaecRegistrationTab student={student} />
         )}
 
         {/* TAB: DIGITAL LIBRARY & E-TEXTBOOKS */}
@@ -2440,6 +2554,22 @@ export const StudentPortal: React.FC<StudentPortalProps> = ({ onBackToWebsite })
         isOpen={isIdCardOpen}
         onClose={() => setIsIdCardOpen(false)}
       />
+
+      {/* AUTOMATIC / ADMIN WAEC PROMPT MODAL FOR SS2 & SS3 STUDENTS */}
+      {showWaecAutoModal && waecPromptBroadcast && (
+        <WaecPromptModal
+          student={{ ...student, waecRegistration: currentWaecRegistration }}
+          prompt={waecPromptBroadcast}
+          onOpenRegistration={() => {
+            setShowWaecAutoModal(false);
+            setActiveTab('waec');
+          }}
+          onDismiss={() => {
+            setShowWaecAutoModal(false);
+            dismissWaecPromptForStudent(student.id);
+          }}
+        />
+      )}
     </div>
   );
 };

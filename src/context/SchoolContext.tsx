@@ -7912,23 +7912,6 @@ export const SchoolProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       });
     }
 
-    // Also update student profile waecRegistration if matching
-    if (student && (student.id === data.studentId || student.regNumber === data.regNumber)) {
-      setStudent(prev => {
-        if (!prev) return prev;
-        const updatedStudent: StudentProfile = {
-          ...prev,
-          waecRegistration: savedItem,
-          dateOfBirth: data.dateOfBirth || prev.dateOfBirth,
-          gender: data.gender || prev.gender,
-          passportPhoto: data.passportPhoto || prev.passportPhoto,
-          passportUrl: data.passportPhoto || prev.passportUrl
-        };
-        try { localStorage.setItem('stanbax_demo_student', JSON.stringify(updatedStudent)); } catch {}
-        return updatedStudent;
-      });
-    }
-
     // Also update in all students list
     setStudents(prev => {
       const updatedList = prev.map(s => {
@@ -7989,14 +7972,7 @@ export const SchoolProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   };
 
   const dismissWaecPromptForStudent = (studentId: string) => {
-    if (student && student.id === studentId) {
-      setStudent(prev => {
-        if (!prev) return prev;
-        const updated = { ...prev, waecPromptDismissed: true };
-        try { localStorage.setItem('stanbax_demo_student', JSON.stringify(updated)); } catch {}
-        return updated;
-      });
-    }
+    updateStudent(studentId, { waecPromptDismissed: true });
   };
 
   const importWaecRegistrationsBatch = (imported: WaecRegistration[]): number => {

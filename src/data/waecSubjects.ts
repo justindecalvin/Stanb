@@ -107,3 +107,5 @@ export const DEPARTMENT_RECOMMENDED_SUBJECTS: Record<'Science' | 'Arts' | 'Comme
     'Data Processing'
   ]
 };
+
+export const WAEC_DEPARTMENT_RECOMMENDATIONS = DEPARTMENT_RECOMMENDED_SUBJECTS;

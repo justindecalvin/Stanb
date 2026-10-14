@@ -264,6 +264,7 @@ export interface StudentProfile {
   emergencyPhone?: string;
   parentEmail?: string;
   email?: string;
+  address?: string;
   password?: string;
   securityQuestion?: string;
   securityAnswer?: string;
