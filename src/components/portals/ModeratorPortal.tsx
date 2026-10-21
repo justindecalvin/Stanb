@@ -16,19 +16,22 @@ import {
   CheckCircle2,
   AlertTriangle,
   Eye,
-  Info
+  Info,
+  GraduationCap,
+  UserPlus
 } from '../RealIcons';
 import { SchoolChatSystem } from '../chat/SchoolChatSystem';
 import { AdminVisitorInquiriesSubTab } from './admin/AdminVisitorInquiriesSubTab';
 import { AdminParentBroadcastTab } from './admin/AdminParentBroadcastTab';
 import { AdminCampusGalleryTab } from './admin/AdminCampusGalleryTab';
 import { AdminSchoolCalendarTab } from './admin/AdminSchoolCalendarTab';
+import { ModeratorStudentAccountsTab } from './moderator/ModeratorStudentAccountsTab';
 
 interface ModeratorPortalProps {
   onBackToWebsite: () => void;
 }
 
-type ModeratorTab = 'chat' | 'visitor_desk' | 'broadcasts' | 'gallery' | 'calendar';
+type ModeratorTab = 'student_accounts' | 'chat' | 'visitor_desk' | 'broadcasts' | 'gallery' | 'calendar';
 
 export const ModeratorPortal: React.FC<ModeratorPortalProps> = ({ onBackToWebsite }) => {
   const {
@@ -38,7 +41,8 @@ export const ModeratorPortal: React.FC<ModeratorPortalProps> = ({ onBackToWebsit
     hasPrivilege,
     visitorConversations,
     chatMessages,
-    galleryPhotos
+    galleryPhotos,
+    students
   } = useSchool();
 
   const currentMod = moderators.find(m => m.id === activeModeratorId) || moderators[0] || {
@@ -48,7 +52,7 @@ export const ModeratorPortal: React.FC<ModeratorPortalProps> = ({ onBackToWebsit
     roleTitle: 'Chief Community & Communications Moderator'
   };
 
-  const [activeTab, setActiveTab] = useState<ModeratorTab>('chat');
+  const [activeTab, setActiveTab] = useState<ModeratorTab>('student_accounts');
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const unreadVisitorCount = visitorConversations?.filter(c => c.unreadByAdmin).length || 0;
@@ -67,6 +71,14 @@ export const ModeratorPortal: React.FC<ModeratorPortalProps> = ({ onBackToWebsit
     badge?: string | number;
     badgeColor?: string;
   }> = [
+    { 
+      id: 'student_accounts', 
+      label: 'Scholar Accounts & Enrolment', 
+      icon: GraduationCap, 
+      privilegeKey: 'manage_students',
+      badge: `${students?.length || 0} Online`,
+      badgeColor: 'bg-emerald-500/20 text-emerald-300 font-bold'
+    },
     { 
       id: 'chat', 
       label: 'Community Chat & Safety', 
@@ -217,6 +229,17 @@ export const ModeratorPortal: React.FC<ModeratorPortalProps> = ({ onBackToWebsit
 
         {/* Main Content Area */}
         <main className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8 bg-[#FDFBF7]">
+          {activeTab === 'student_accounts' && (
+            hasPrivilege('moderator', 'manage_students') ? (
+              <ModeratorStudentAccountsTab
+                moderatorName={currentMod.name}
+                moderatorRoleTitle={currentMod.roleTitle}
+              />
+            ) : (
+              <ModeratorRestrictedBanner privilege="manage_students" title="Scholar Accounts & Enrolment" />
+            )
+          )}
+
           {activeTab === 'chat' && (
             hasPrivilege('moderator', 'community_chat_moderation') ? (
               <div className="space-y-6">

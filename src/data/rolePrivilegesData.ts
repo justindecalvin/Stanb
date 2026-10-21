@@ -104,7 +104,7 @@ export const DEFAULT_ROLE_PRIVILEGES: RolePrivilegeSettings = {
     credentials_vault: false
   },
   moderator: {
-    manage_students: false,
+    manage_students: true,
     manage_faculty: false,
     academic_curriculum: false,
     terminal_results: false,

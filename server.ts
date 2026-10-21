@@ -1,5 +1,6 @@
 import express from "express";
 import path from "path";
+import fs from "fs";
 import { createServer as createViteServer } from "vite";
 import dotenv from "dotenv";
 import { GoogleGenAI } from "@google/genai";
@@ -858,6 +859,363 @@ async function startServer() {
       geminiConfigured: !!process.env.GEMINI_API_KEY,
       school: "Stanbax Schools Ibadan" 
     });
+  });
+
+  // =========================================================================
+  // ONLINE CLOUD PERSISTENCE: STUDENT ACCOUNTS DATABASE (Saved Online, Not Local Storage)
+  // =========================================================================
+  const DATA_DIR = path.join(process.cwd(), "data");
+  const STUDENTS_FILE = path.join(DATA_DIR, "students.json");
+
+  function ensureDataDir(): void {
+    if (!fs.existsSync(DATA_DIR)) {
+      try {
+        fs.mkdirSync(DATA_DIR, { recursive: true });
+      } catch (err) {
+        console.warn("[Online Storage] Could not create data dir:", err);
+      }
+    }
+  }
+
+  const SEED_ONLINE_STUDENTS = [
+    {
+      id: 'stu-1',
+      regNumber: 'SBS/2024/001',
+      name: 'Tiwa Adeleke',
+      grade: 'SSS 2 Science',
+      classId: 'cls-14',
+      gender: 'Female',
+      dateOfBirth: '2008-05-14',
+      parentName: 'Chief & Mrs. Adeleke',
+      parentPhone: '+234 803 456 7890',
+      parentEmail: 'adeleke.fam@yahoo.com',
+      email: 'sbs2024001@stanbaxschools.edu.ng',
+      password: 'stanbax2025',
+      house: 'Sapphire (Blue House)',
+      clubs: ['Press & Literary Club', 'Robotics & STEM League'],
+      attendancePercent: 98,
+      attendanceDays: 59,
+      totalSchoolDays: 60,
+      termAverage: 89.6,
+      feeTotal: 265000,
+      feePaid: 265000,
+      feeBalance: 0,
+      feeStatus: 'Fully Paid',
+      calvinAiAccess: {
+        active: true,
+        tier: 'premium',
+        tokenCode: 'CALVIN-PREM-2026',
+        activatedAt: new Date().toISOString(),
+        expiresAt: new Date(Date.now() + 365 * 24 * 3600 * 1000).toISOString(),
+        durationHours: 8760,
+        questionsCount: 42
+      },
+      savedOnline: true,
+      storageSource: 'online_server_database',
+      createdAt: new Date().toISOString()
+    },
+    {
+      id: 'stu-2',
+      regNumber: 'STX/2023/043',
+      name: 'Babatunde Akindele',
+      grade: 'SSS 2 Science',
+      classId: 'cls-14',
+      gender: 'Male',
+      dateOfBirth: '2008-11-20',
+      parentName: 'Engr. & Dr. Akindele',
+      parentPhone: '+234 802 887 6543',
+      parentEmail: 'akindele.eng@yahoo.com',
+      email: 'stx2023043@stanbaxschools.edu.ng',
+      password: 'stanbax2025',
+      house: 'Ruby (Red House)',
+      clubs: ['JETS Science & Robotics Club'],
+      attendancePercent: 95,
+      attendanceDays: 57,
+      totalSchoolDays: 60,
+      termAverage: 81.4,
+      feeTotal: 265000,
+      feePaid: 185000,
+      feeBalance: 80000,
+      feeStatus: 'Partially Paid',
+      savedOnline: true,
+      storageSource: 'online_server_database',
+      createdAt: new Date().toISOString()
+    },
+    {
+      id: 'stu-3',
+      regNumber: 'STX/2023/044',
+      name: 'Chidera Okafor',
+      grade: 'SSS 2 Science',
+      classId: 'cls-14',
+      gender: 'Female',
+      dateOfBirth: '2009-01-15',
+      parentName: 'Mr. & Mrs. Obinna Okafor',
+      parentPhone: '+234 809 112 3456',
+      parentEmail: 'okafor.family@gmail.com',
+      email: 'stx2023044@stanbaxschools.edu.ng',
+      password: 'stanbax2025',
+      house: 'Emerald (Green House)',
+      clubs: ['Literary & Debating Society', 'Music & Brass Band'],
+      attendancePercent: 97,
+      attendanceDays: 58,
+      totalSchoolDays: 60,
+      termAverage: 88.2,
+      feeTotal: 265000,
+      feePaid: 265000,
+      feeBalance: 0,
+      feeStatus: 'Fully Paid',
+      savedOnline: true,
+      storageSource: 'online_server_database',
+      createdAt: new Date().toISOString()
+    }
+  ];
+
+  function getOnlineStudents(): any[] {
+    ensureDataDir();
+    if (fs.existsSync(STUDENTS_FILE)) {
+      try {
+        const raw = fs.readFileSync(STUDENTS_FILE, "utf-8");
+        const parsed = JSON.parse(raw);
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      } catch (e) {
+        console.warn("[Online Storage] Could not parse students.json, falling back to seed", e);
+      }
+    }
+    try {
+      fs.writeFileSync(STUDENTS_FILE, JSON.stringify(SEED_ONLINE_STUDENTS, null, 2), "utf-8");
+    } catch (e) {
+      console.warn("[Online Storage] Could not write seed students.json", e);
+    }
+    return [...SEED_ONLINE_STUDENTS];
+  }
+
+  function saveOnlineStudents(students: any[]): boolean {
+    ensureDataDir();
+    try {
+      fs.writeFileSync(STUDENTS_FILE, JSON.stringify(students, null, 2), "utf-8");
+      return true;
+    } catch (e) {
+      console.error("[Online Storage] Could not write to students.json", e);
+      return false;
+    }
+  }
+
+  // 1. GET /api/students: Fetch all verified online student accounts
+  app.get("/api/students", (_req, res) => {
+    try {
+      const students = getOnlineStudents();
+      res.json({
+        success: true,
+        count: students.length,
+        students,
+        storageSource: 'online_server_database',
+        filePath: STUDENTS_FILE,
+        timestamp: new Date().toISOString()
+      });
+    } catch (err: any) {
+      res.status(500).json({
+        success: false,
+        error: err?.message || 'Failed to retrieve online students',
+        students: []
+      });
+    }
+  });
+
+  // 2. POST /api/students: Add a new student account online (e.g. registered by a Moderator)
+  app.post("/api/students", (req, res) => {
+    try {
+      const body = req.body || {};
+      const {
+        name,
+        grade,
+        gender = 'Male',
+        parentName,
+        parentPhone,
+        parentEmail,
+        dateOfBirth,
+        house = 'Sapphire (Blue House)',
+        clubs = [],
+        password = 'stanbax2025',
+        securityQuestion,
+        securityAnswer,
+        bloodGroup,
+        genotype,
+        allergies,
+        medicalConditions,
+        emergencyContactName,
+        feeTotal,
+        feePaid,
+        classId,
+        creatorRole = 'moderator',
+        creatorName = 'Community Moderator'
+      } = body;
+
+      if (!name || !name.trim()) {
+        return res.status(400).json({ success: false, error: "Scholar Full Name is required." });
+      }
+      if (!grade || !grade.trim()) {
+        return res.status(400).json({ success: false, error: "Class / Grade assignment is required." });
+      }
+      if (!parentName || !parentName.trim()) {
+        return res.status(400).json({ success: false, error: "Parent or Guardian Full Name is required." });
+      }
+      if (!parentPhone || !parentPhone.trim()) {
+        return res.status(400).json({ success: false, error: "Parent Contact Phone Number is required." });
+      }
+
+      const existingStudents = getOnlineStudents();
+
+      // Determine next sequential registration number if not explicitly specified
+      const currentYear = new Date().getFullYear();
+      let regNumber = (body.regNumber && body.regNumber.trim()) ? body.regNumber.trim() : '';
+      if (!regNumber) {
+        const nextSequence = existingStudents.length + 1;
+        regNumber = `SBS/${currentYear}/${String(nextSequence).padStart(3, '0')}`;
+      }
+
+      // Check for duplicate reg numbers
+      const duplicate = existingStudents.find(
+        s => s.regNumber && s.regNumber.toLowerCase() === regNumber.toLowerCase()
+      );
+      if (duplicate) {
+        // Append randomized suffix to guarantee uniqueness
+        regNumber = `${regNumber}-${Math.floor(100 + Math.random() * 900)}`;
+      }
+
+      const newId = body.id || `stu-online-${Date.now()}-${Math.floor(100 + Math.random() * 900)}`;
+      const cleanEmail = body.email || `${regNumber.toLowerCase().replace(/[^a-z0-9]/g, '')}@stanbaxschools.edu.ng`;
+      
+      const parsedFeeTotal = Number(feeTotal) || 265000;
+      const parsedFeePaid = Number(feePaid) || 0;
+      const feeBalance = Math.max(0, parsedFeeTotal - parsedFeePaid);
+      const feeStatus = feeBalance === 0 ? 'Fully Paid' : parsedFeePaid > 0 ? 'Partially Paid' : 'Outstanding';
+
+      const newStudent = {
+        id: newId,
+        regNumber,
+        name: name.trim(),
+        grade: grade.trim(),
+        classId: classId || undefined,
+        gender: gender === 'Female' ? 'Female' : 'Male',
+        dateOfBirth: dateOfBirth || '2010-01-01',
+        parentName: parentName.trim(),
+        parentPhone: parentPhone.trim(),
+        parentEmail: (parentEmail || '').trim(),
+        email: cleanEmail,
+        password: (password || 'stanbax2025').trim(),
+        house,
+        clubs: Array.isArray(clubs) ? clubs : [],
+        attendancePercent: 100,
+        attendanceDays: 0,
+        totalSchoolDays: 60,
+        termAverage: 0,
+        feeTotal: parsedFeeTotal,
+        feePaid: parsedFeePaid,
+        feeBalance,
+        feeStatus,
+        securityQuestion: securityQuestion || "What is your primary house name?",
+        securityAnswer: securityAnswer || house,
+        bloodGroup: bloodGroup || undefined,
+        genotype: genotype || undefined,
+        allergies: allergies || undefined,
+        medicalConditions: medicalConditions || undefined,
+        emergencyContactName: emergencyContactName || undefined,
+        calvinAiAccess: {
+          active: true,
+          tier: (body.calvinAiTier === 'premium' ? 'premium' : 'regular') as 'regular' | 'premium',
+          tokenCode: `CALVIN-${regNumber.replace(/[^A-Za-z0-9]/g, '')}`,
+          activatedAt: new Date().toISOString(),
+          expiresAt: new Date(Date.now() + 365 * 24 * 3600 * 1000).toISOString(),
+          durationHours: 8760,
+          questionsCount: 0
+        },
+        savedOnline: true,
+        storageSource: 'online_server_database',
+        createdByRole: creatorRole,
+        createdByName: creatorName,
+        createdAt: new Date().toISOString()
+      };
+
+      // Insert at the front so it is immediately visible
+      const updatedList = [newStudent, ...existingStudents];
+      const savedOk = saveOnlineStudents(updatedList);
+
+      if (!savedOk) {
+        return res.status(500).json({
+          success: false,
+          error: "Failed to commit student account to server online storage."
+        });
+      }
+
+      console.log(`[Online Storage] Created student account ${newStudent.name} (${newStudent.regNumber}) by ${creatorRole}`);
+
+      res.status(201).json({
+        success: true,
+        student: newStudent,
+        storageSource: 'online_server_database',
+        message: `Student account for ${newStudent.name} (${newStudent.regNumber}) successfully created and saved online.`
+      });
+    } catch (err: any) {
+      console.error("[Online Storage Error]", err);
+      res.status(500).json({
+        success: false,
+        error: err?.message || 'Unexpected server error while registering student online.'
+      });
+    }
+  });
+
+  // 3. PUT /api/students/:id: Update existing student online
+  app.put("/api/students/:id", (req, res) => {
+    try {
+      const studentId = req.params.id;
+      const updates = req.body || {};
+      const existingStudents = getOnlineStudents();
+      const index = existingStudents.findIndex(s => s.id === studentId);
+
+      if (index === -1) {
+        return res.status(404).json({ success: false, error: "Scholar account not found online." });
+      }
+
+      const updatedStudent = {
+        ...existingStudents[index],
+        ...updates,
+        id: studentId,
+        savedOnline: true,
+        updatedAt: new Date().toISOString()
+      };
+
+      existingStudents[index] = updatedStudent;
+      saveOnlineStudents(existingStudents);
+
+      res.json({
+        success: true,
+        student: updatedStudent,
+        message: "Scholar account updated in online server database."
+      });
+    } catch (err: any) {
+      res.status(500).json({ success: false, error: err?.message || 'Failed to update student online.' });
+    }
+  });
+
+  // 4. DELETE /api/students/:id: Remove student from online database
+  app.delete("/api/students/:id", (req, res) => {
+    try {
+      const studentId = req.params.id;
+      const existingStudents = getOnlineStudents();
+      const filtered = existingStudents.filter(s => s.id !== studentId);
+
+      if (filtered.length === existingStudents.length) {
+        return res.status(404).json({ success: false, error: "Scholar account not found." });
+      }
+
+      saveOnlineStudents(filtered);
+      res.json({
+        success: true,
+        message: "Scholar account successfully removed from online database."
+      });
+    } catch (err: any) {
+      res.status(500).json({ success: false, error: err?.message || 'Failed to delete student online.' });
+    }
   });
 
   // School News & External Educational Updates API

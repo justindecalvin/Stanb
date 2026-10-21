@@ -380,7 +380,7 @@ export const AdminRolePrivilegesTab: React.FC = () => {
                 </span>
               </div>
               <p className="text-xs text-stone-500">
-                Moderators manage community chat channels, live prospective visitor inquiries, and photo gallery curation.
+                Moderators manage scholar accounts & enrolments (saved online to server database), community chat safety, visitor inquiries, and media curation.
               </p>
             </div>
 

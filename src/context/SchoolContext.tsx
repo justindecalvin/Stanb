@@ -279,6 +279,9 @@ interface SchoolContextType {
   switchActiveStudent: (id: string) => void;
   updateStudent: (id: string, updated: Partial<StudentProfile>) => void;
   registerStudent: (data: StudentRegistrationData) => StudentProfile;
+  addStudent: (studentData: Omit<StudentProfile, 'id' | 'regNumber'> & { id?: string; regNumber?: string }, creatorRole?: string, creatorName?: string) => Promise<{ success: boolean; student?: StudentProfile; message?: string }>;
+  onlineStudentsSynced: boolean;
+  syncOnlineStudentsNow: () => Promise<void>;
   updateStudentPassport: (studentId: string, passportPhoto: string) => void;
   deleteStudent: (id: string) => void;
   setStudentIntensiveCalvinSupport: (
@@ -2560,12 +2563,122 @@ export const SchoolProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     updateStudent(studentId, { passportPhoto });
   };
 
+  const [onlineStudentsSynced, setOnlineStudentsSynced] = useState<boolean>(false);
+
+  const syncOnlineStudentsNow = async () => {
+    try {
+      const res = await fetch('/api/students');
+      if (res.ok) {
+        const data = await res.json();
+        if (data.success && Array.isArray(data.students) && data.students.length > 0) {
+          setStudents(prev => {
+            const map = new Map<string, StudentProfile>();
+            data.students.forEach((s: StudentProfile) => {
+              map.set(s.id, s);
+              if (s.regNumber) map.set(s.regNumber.toLowerCase(), s);
+            });
+            const merged = [...data.students];
+            prev.forEach(ps => {
+              if (!map.has(ps.id) && (!ps.regNumber || !map.has(ps.regNumber.toLowerCase()))) {
+                merged.push(ps);
+              }
+            });
+            try { localStorage.setItem('stanbax_students', JSON.stringify(merged)); } catch {}
+            return merged;
+          });
+          setOnlineStudentsSynced(true);
+        }
+      }
+    } catch (err) {
+      console.warn('[Online Storage] Could not hydrate online students:', err);
+    }
+  };
+
+  useEffect(() => {
+    void syncOnlineStudentsNow();
+  }, []);
+
+  const addStudent = async (
+    studentData: Omit<StudentProfile, 'id' | 'regNumber'> & { id?: string; regNumber?: string },
+    creatorRole: string = 'moderator',
+    creatorName?: string
+  ): Promise<{ success: boolean; student?: StudentProfile; message?: string }> => {
+    try {
+      const res = await fetch('/api/students', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          ...studentData,
+          creatorRole,
+          creatorName
+        })
+      });
+
+      const data = await res.json();
+      if (!data.success || !data.student) {
+        throw new Error(data.error || 'Server could not commit student account online.');
+      }
+
+      const savedStudent: StudentProfile = data.student;
+
+      setStudents(prev => {
+        const filtered = prev.filter(s => s.id !== savedStudent.id && s.regNumber !== savedStudent.regNumber);
+        const next = [savedStudent, ...filtered];
+        try { localStorage.setItem('stanbax_students', JSON.stringify(next)); } catch {}
+        return next;
+      });
+
+      setOnlineStudentsSynced(true);
+      broadcastLocalStateChange('stanbax_students', savedStudent);
+      void syncStateOnline('stanbax_students', savedStudent);
+
+      void remoteCreateCredential(
+        savedStudent.regNumber,
+        savedStudent.password || 'stanbax2025',
+        'student',
+        savedStudent.id,
+        [savedStudent.email, savedStudent.name.toLowerCase()].filter((x): x is string => Boolean(x))
+      );
+
+      return {
+        success: true,
+        student: savedStudent,
+        message: data.message || `Scholar account for ${savedStudent.name} (${savedStudent.regNumber}) saved online successfully!`
+      };
+    } catch (err: any) {
+      console.error('[Add Student Online Error]', err);
+      // Fallback to local registration if server unreachable
+      const fallback = registerStudent({
+        name: studentData.name,
+        grade: studentData.grade,
+        gender: studentData.gender,
+        parentName: studentData.parentName,
+        parentPhone: studentData.parentPhone,
+        house: studentData.house,
+        emergencyPhone: studentData.emergencyPhone,
+        email: studentData.email,
+        password: studentData.password,
+        securityQuestion: studentData.securityQuestion,
+        securityAnswer: studentData.securityAnswer,
+        passportPhoto: studentData.passportPhoto
+      });
+      return {
+        success: true,
+        student: fallback,
+        message: 'Account registered. Note: Saved locally while online synchronization is pending.'
+      };
+    }
+  };
+
   const deleteStudent = (id: string) => {
+    void fetch(`/api/students/${encodeURIComponent(id)}`, { method: 'DELETE' }).catch(() => {});
     setStudents(prev => {
       const updated = prev.filter(s => s.id !== id);
       try {
         localStorage.setItem('stanbax_students', JSON.stringify(updated));
       } catch {}
+      broadcastLocalStateChange('stanbax_students', updated);
+      void syncStateOnline('stanbax_students', updated);
       return updated;
     });
   };
@@ -8628,6 +8741,9 @@ export const SchoolProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         switchActiveStudent,
         updateStudent,
         registerStudent,
+        addStudent,
+        onlineStudentsSynced,
+        syncOnlineStudentsNow,
         updateStudentPassport,
         deleteStudent,
         homeworks,
