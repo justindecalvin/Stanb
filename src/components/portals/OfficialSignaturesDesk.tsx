@@ -10,7 +10,6 @@ import {
   ShieldCheck, 
   Award, 
   Edit3, 
-  Sparkles,
   School as SchoolIcon,
   AlertCircle
 } from '../RealIcons';

@@ -7,6 +7,7 @@ import {
   Trash2, 
   Edit3, 
   Check, 
+  X,
   RotateCcw, 
   Calculator, 
   DollarSign, 
@@ -511,7 +512,7 @@ export const AdminClassesFeesTab: React.FC = () => {
                             className="p-1.5 rounded bg-slate-200 text-slate-600 hover:bg-slate-300 cursor-pointer"
                             title="Cancel"
                           >
-                            ✕
+                            <X className="w-3 h-3" />
                           </button>
                         </div>
                       ) : (

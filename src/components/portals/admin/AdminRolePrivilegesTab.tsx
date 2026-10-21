@@ -28,7 +28,7 @@ import {
   Info,
   Shield,
   HelpCircle,
-  Sparkles
+  X
 } from '../../RealIcons';
 import { ALL_PRIVILEGES, DEFAULT_ROLE_PRIVILEGES } from '../../../data/rolePrivilegesData';
 import { PrivilegeKey, UserRole, ModeratorProfile } from '../../../types';
@@ -588,9 +588,9 @@ export const AdminRolePrivilegesTab: React.FC = () => {
               <button
                 type="button"
                 onClick={() => setShowAddModModal(false)}
-                className="p-1 rounded-lg hover:bg-stone-100 text-stone-400 hover:text-stone-700"
+                className="p-1 rounded-lg hover:bg-stone-100 text-stone-400 hover:text-stone-700 cursor-pointer"
               >
-                ✕
+                <X className="w-4 h-4" />
               </button>
             </div>
 

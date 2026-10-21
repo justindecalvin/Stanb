@@ -9,7 +9,6 @@ import {
   FileCheck2, 
   HelpCircle, 
   ShieldCheck, 
-  Sparkles, 
   UserCheck, 
   X 
 } from 'lucide-react';
@@ -172,7 +171,7 @@ export const WaecPromptModal: React.FC<WaecPromptModalProps> = ({
 
           {/* Quick instructions pill */}
           <div className="flex items-center gap-3 p-3 bg-emerald-50/70 border border-emerald-200/80 rounded-xl text-xs text-emerald-900">
-            <Sparkles className="w-4 h-4 text-emerald-600 shrink-0" />
+            <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
             <p>
               Once completed, you can instantly download your registration card and export your entire candidate data and photos in an encrypted <strong>ZIP file</strong>.
             </p>

@@ -234,7 +234,7 @@ export const ClubLeadershipModal: React.FC<ClubLeadershipModalProps> = ({
           <div>
             <label className="block text-xs font-black text-neutral-800 mb-1 flex items-center gap-1.5">
               <Crown className="w-3.5 h-3.5 text-amber-500 fill-amber-400" />
-              <span>👑 Club President</span>
+              <span>Club President</span>
             </label>
             <select
               value={presidentId}
@@ -254,7 +254,7 @@ export const ClubLeadershipModal: React.FC<ClubLeadershipModalProps> = ({
           <div>
             <label className="block text-xs font-black text-neutral-800 mb-1 flex items-center gap-1.5">
               <Crown className="w-3.5 h-3.5 text-emerald-600 fill-emerald-500" />
-              <span>👑 Club Vice President</span>
+              <span>Club Vice President</span>
             </label>
             <select
               value={viceId}
@@ -387,7 +387,7 @@ export const SchoolPrefectBadgesModal: React.FC<SchoolPrefectBadgesModalProps> =
   const [selectedStudentId, setSelectedStudentId] = useState('');
   const [selectedRole, setSelectedRole] = useState(STANDARD_PREFECT_ROLES[0]);
   const [customRole, setCustomRole] = useState('');
-  const [selectedIcon, setSelectedIcon] = useState('⭐');
+  const [selectedIcon, setSelectedIcon] = useState('award');
   const [savedSuccess, setSavedSuccess] = useState(false);
 
   // List of active prefects
@@ -400,7 +400,7 @@ export const SchoolPrefectBadgesModal: React.FC<SchoolPrefectBadgesModalProps> =
     const finalRole = selectedRole === 'Custom' ? customRole.trim() : selectedRole;
     if (!finalRole) return;
 
-    const finalBadge = `${selectedIcon} ${finalRole}`;
+    const finalBadge = finalRole;
     assignStudentPrefectBadge(selectedStudentId, finalRole, finalBadge);
 
     setSavedSuccess(true);
@@ -498,16 +498,23 @@ export const SchoolPrefectBadgesModal: React.FC<SchoolPrefectBadgesModalProps> =
             <div>
               <label className="block text-xs font-bold text-neutral-700 mb-1">Badge Symbol</label>
               <div className="flex gap-2">
-                {['⭐', '🏅', '👑', '🛡️', '🌟'].map(icon => (
+                {[
+                  { id: 'award', label: 'Medal', icon: Award },
+                  { id: 'star', label: 'Star', icon: Star },
+                  { id: 'crown', label: 'Crown', icon: Crown },
+                  { id: 'shield', label: 'Shield', icon: ShieldCheck },
+                  { id: 'cap', label: 'Academic', icon: GraduationCap }
+                ].map(b => (
                   <button
-                    key={icon}
+                    key={b.id}
                     type="button"
-                    onClick={() => setSelectedIcon(icon)}
-                    className={`w-9 h-9 rounded-xl border flex items-center justify-center text-sm transition cursor-pointer ${
-                      selectedIcon === icon ? 'bg-amber-200 border-amber-500 scale-105' : 'bg-white border-neutral-200'
+                    onClick={() => setSelectedIcon(b.id)}
+                    className={`w-9 h-9 rounded-xl border flex items-center justify-center transition cursor-pointer ${
+                      selectedIcon === b.id ? 'bg-amber-200 border-amber-500 scale-105' : 'bg-white border-neutral-200 hover:bg-neutral-50'
                     }`}
+                    title={b.label}
                   >
-                    {icon}
+                    <b.icon className="w-4 h-4 text-amber-900" />
                   </button>
                 ))}
               </div>
@@ -558,8 +565,9 @@ export const SchoolPrefectBadgesModal: React.FC<SchoolPrefectBadgesModalProps> =
                     </div>
 
                     <div className="flex items-center gap-2">
-                      <span className="px-2.5 py-1 rounded-full text-xs font-black bg-gradient-to-r from-amber-100 to-amber-200 text-amber-900 border border-amber-300 shadow-2xs">
-                        {s.prefectBadge || `🏅 ${s.prefectRole}`}
+                      <span className="px-2.5 py-1 rounded-full text-xs font-black bg-gradient-to-r from-amber-100 to-amber-200 text-amber-900 border border-amber-300 shadow-2xs flex items-center gap-1.5">
+                        <Award className="w-3.5 h-3.5 text-amber-700 shrink-0" />
+                        <span>{s.prefectRole || s.prefectBadge?.replace(/[⭐🏅👑🛡️🌟]/g, '').trim()}</span>
                       </span>
 
                       <button

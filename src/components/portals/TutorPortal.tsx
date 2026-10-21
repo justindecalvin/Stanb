@@ -4,6 +4,7 @@ import { PortalLoginPage } from '../PortalLoginPage';
 import { AiExamCreatorTab } from './tutor/AiExamCreatorTab';
 import { TutorLessonNotesTab } from './tutor/TutorLessonNotesTab';
 import { StaffProfileAndSignatureTab } from './tutor/StaffProfileAndSignatureTab';
+import { FastClassScoreEntry } from './tutor/FastClassScoreEntry';
 import { Crown, Camera, UserCheck } from 'lucide-react';
 import { 
   GraduationCap, 
@@ -31,8 +32,7 @@ import {
   KeyRound,
   MessageSquare,
   Layers,
-  Send,
-  Sparkles
+  Send
 } from '../RealIcons';
 import { SchoolChatSystem } from '../chat/SchoolChatSystem';
 import { DualCurriculumMatrix } from './DualCurriculumMatrix';
@@ -84,6 +84,7 @@ export const TutorPortal: React.FC<TutorPortalProps> = ({ onBackToWebsite }) => 
   }
 
   const [tutorTab, setTutorTab] = useState<'gradebook' | 'ai_exam_creator' | 'lesson_notes' | 'dual_curriculum' | 'whatsapp_reports' | 'sciencelab' | 'homework' | 'attendance' | 'timetable' | 'consultations' | 'staff_profile' | 'chat'>('gradebook');
+  const [gradebookViewMode, setGradebookViewMode] = useState<'fast_cards' | 'individual_ledger'>('fast_cards');
   const [isSideMenuOpen, setIsSideMenuOpen] = useState(false);
 
   // Active enrolled scholars in class (ex-students / alumni no longer show as part of the class)
@@ -101,6 +102,19 @@ export const TutorPortal: React.FC<TutorPortalProps> = ({ onBackToWebsite }) => 
   const primaryAssignedClass = assignedClassesAsTeacher[0] || null;
   const assignedClassAsTeacher = primaryAssignedClass;
 
+  // Administrative & Principal Clearance Check
+  const isGlobalAdmin = isAdminAuthenticated || 
+    tutor.role?.toLowerCase().includes('admin') || 
+    tutor.role?.toLowerCase().includes('super');
+
+  const isPrincipal = 
+    tutor.principalRole === 'principal_administrator' || 
+    tutor.principalRole === 'principal_academics' || 
+    tutor.principalPrivileges?.includes('manage_assessments') || 
+    tutor.role?.toLowerCase().includes('principal') || 
+    tutor.role?.toLowerCase().includes('head of school') ||
+    tutor.role?.toLowerCase().includes('proprietress');
+
   // Tutor Change Password State
   const [showPasswordModal, setShowPasswordModal] = useState(false);
   const [currentTutorPass, setCurrentTutorPass] = useState('');
@@ -115,7 +129,7 @@ export const TutorPortal: React.FC<TutorPortalProps> = ({ onBackToWebsite }) => 
   const [onboardRole, setOnboardRole] = useState(tutor.role || 'Subject Teacher');
   const [onboardQual, setOnboardQual] = useState(tutor.qualification || 'B.Sc / B.Ed, TRCN Certified');
   const [onboardPhone, setOnboardPhone] = useState(tutor.phone || '+234 803 000 0000');
-  const [onboardBio, setOnboardBio] = useState(tutor.bio || 'Dedicated Stanbax educator committed to student excellence.');
+  const [onboardBio, setOnboardBio] = useState(tutor.bio || `Dedicated ${schoolInfo.name || 'Stanbax'} educator committed to student excellence.`);
   const [onboardSubjects, setOnboardSubjects] = useState<string[]>(tutor.assignedSubjects || []);
   const [onboardClasses, setOnboardClasses] = useState<string[]>(tutor.assignedClasses || []);
   const [onboardSuccess, setOnboardSuccess] = useState('');
@@ -156,7 +170,7 @@ export const TutorPortal: React.FC<TutorPortalProps> = ({ onBackToWebsite }) => 
 
   // Selected subject for scoring
   const [selectedSubject, setSelectedSubject] = useState<string>(
-    permittedSubjects[0] || (scholarGrades[0]?.subject ?? 'Physics')
+    permittedSubjects[0] || (scholarGrades[0]?.subject ?? subjects[0]?.name ?? '')
   );
 
   // Sync selected subject if tutor changes
@@ -168,18 +182,18 @@ export const TutorPortal: React.FC<TutorPortalProps> = ({ onBackToWebsite }) => 
 
   const activeRecord = scholarGrades.find(g => g.subject.toLowerCase() === selectedSubject.toLowerCase()) || scholarGrades[0] || {
     subject: selectedSubject,
-    ca1: 8,
-    ca2: 8,
-    ca3: 8,
-    exam: 60,
-    total: 84,
-    grade: 'A1',
-    remark: 'Distinction'
+    ca1: 0,
+    ca2: 0,
+    ca3: 0,
+    exam: 0,
+    total: 0,
+    grade: calculateGrade(0).grade,
+    remark: calculateGrade(0).remark
   };
   
   const [ca1Input, setCa1Input] = useState<number>(activeRecord.ca1);
   const [ca2Input, setCa2Input] = useState<number>(activeRecord.ca2);
-  const [ca3Input, setCa3Input] = useState<number>(activeRecord.ca3 ?? 8);
+  const [ca3Input, setCa3Input] = useState<number>(activeRecord.ca3 ?? 0);
   const [examInput, setExamInput] = useState<number>(activeRecord.exam);
   const [gradeSaveMsg, setGradeSaveMsg] = useState<string>('');
 
@@ -190,8 +204,13 @@ export const TutorPortal: React.FC<TutorPortalProps> = ({ onBackToWebsite }) => 
     if (rec) {
       setCa1Input(rec.ca1);
       setCa2Input(rec.ca2);
-      setCa3Input(rec.ca3 ?? 8);
+      setCa3Input(rec.ca3 ?? 0);
       setExamInput(rec.exam);
+    } else {
+      setCa1Input(0);
+      setCa2Input(0);
+      setCa3Input(0);
+      setExamInput(0);
     }
   };
 
@@ -216,8 +235,12 @@ export const TutorPortal: React.FC<TutorPortalProps> = ({ onBackToWebsite }) => 
       alert('Assessment entry is currently locked by the School Administration.');
       return;
     }
-    if (!permittedSubjects.includes(selectedSubject)) {
-      alert(`Security Restriction: You are not assigned to score ${selectedSubject}. Only authorized tutors may score this subject.`);
+    const isScholarClassTeacher = assignedClassesAsTeacher.some(c => 
+      c.id === activeScholar.classId || c.name.toLowerCase() === activeScholar.grade?.toLowerCase()
+    );
+    const hasClearance = isGlobalAdmin || isPrincipal || isScholarClassTeacher || permittedSubjects.includes(selectedSubject);
+    if (!hasClearance) {
+      alert(`Security Restriction: You are not assigned to score ${selectedSubject}. Only authorized tutors, class teachers, or principals may score this subject.`);
       return;
     }
 
@@ -467,7 +490,7 @@ export const TutorPortal: React.FC<TutorPortalProps> = ({ onBackToWebsite }) => 
       label: 'Virtual Science Lab Simulator', 
       badge: 'Practical Labs',
       badgeColor: 'bg-indigo-500/20 text-indigo-300 border-indigo-500/30',
-      icon: Sparkles,
+      icon: Layers,
       description: 'Interactive STEM laboratory for Chemistry Titration, Physics Pendulum & Biology Photosynthesis'
     },
     { 
@@ -870,7 +893,53 @@ export const TutorPortal: React.FC<TutorPortalProps> = ({ onBackToWebsite }) => 
         {/* TAB 1: CONTINUOUS ASSESSMENT GRADEBOOK */}
         {tutorTab === 'gradebook' && (
           <div className="space-y-6">
-            {/* Phase Status Notification Banner */}
+            {/* Mode Switcher: Fast Class Score Cards vs Individual Scholar Ledger */}
+            <div className="bg-white p-2.5 rounded-3xl border border-slate-200 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setGradebookViewMode('fast_cards')}
+                  className={`px-4 py-2.5 rounded-2xl text-xs font-black transition-all cursor-pointer flex items-center gap-2 ${
+                    gradebookViewMode === 'fast_cards'
+                      ? 'bg-blue-900 text-white shadow-md'
+                      : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
+                  }`}
+                >
+                  <Award className="w-3.5 h-3.5 text-amber-400" />
+                  <span>Fast Multi-Student Cards (Class Scoring)</span>
+                  <span className="text-[10px] bg-amber-400 text-blue-950 font-black px-1.5 py-0.5 rounded-md">
+                    Fast Entry
+                  </span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setGradebookViewMode('individual_ledger')}
+                  className={`px-4 py-2.5 rounded-2xl text-xs font-black transition-all cursor-pointer flex items-center gap-2 ${
+                    gradebookViewMode === 'individual_ledger'
+                      ? 'bg-blue-900 text-white shadow-md'
+                      : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
+                  }`}
+                >
+                  <FileText className="w-3.5 h-3.5" />
+                  <span>Single Scholar Deep Ledger</span>
+                </button>
+              </div>
+
+              <div className="text-xs text-slate-500 font-medium px-3 hidden md:block">
+                {gradebookViewMode === 'fast_cards' 
+                  ? 'Card-based fast score entry with auto-distribution and instant class result computation' 
+                  : 'Individual scholar continuous assessment record and official ministry ledger'}
+              </div>
+            </div>
+
+            {gradebookViewMode === 'fast_cards' ? (
+              <FastClassScoreEntry 
+                onOpenReportCardDispatcher={() => setTutorTab('whatsapp_reports')} 
+              />
+            ) : (
+              <>
+                {/* Phase Status Notification Banner */}
             <div className={`p-4 sm:p-5 rounded-3xl border text-xs sm:text-sm flex flex-col md:flex-row md:items-center justify-between gap-4 ${
               isMidTermOnly
                 ? 'bg-blue-50/80 border-blue-200 text-blue-950'
@@ -1279,8 +1348,10 @@ export const TutorPortal: React.FC<TutorPortalProps> = ({ onBackToWebsite }) => 
                 </div>
               </div>
             </div>
-          </div>
+          </>
         )}
+      </div>
+    )}
 
         {/* TAB: AI ASSESSMENT & EXAM CREATOR */}
         {tutorTab === 'ai_exam_creator' && (
@@ -2142,8 +2213,9 @@ export const TutorPortal: React.FC<TutorPortalProps> = ({ onBackToWebsite }) => 
                           <span className="text-slate-300">•</span>
                           <span className="text-[11px] font-bold text-purple-700">Target: {req.targetRole} {req.recipientName ? `(${req.recipientName})` : ''}</span>
                         </div>
-                        <span className="text-[11px] text-slate-500 block font-mono">
-                          📅 {req.preferredDate} at {req.preferredTime} • Phone: {req.parentPhone}
+                        <span className="text-[11px] text-slate-500 flex items-center gap-1 font-mono">
+                          <Calendar className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                          <span>{req.preferredDate} at {req.preferredTime} • Phone: {req.parentPhone}</span>
                         </span>
                       </div>
 

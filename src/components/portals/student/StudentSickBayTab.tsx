@@ -16,7 +16,7 @@ import {
 import { SickBayVisitLog } from '../../../types';
 
 export const StudentSickBayTab: React.FC = () => {
-  const { student, sickBayLogs, addSickBayLog } = useSchool();
+  const { student, sickBayLogs, addSickBayLog, schoolInfo } = useSchool();
 
   const [showRequestModal, setShowRequestModal] = useState(false);
   const [symptoms, setSymptoms] = useState('');
@@ -92,7 +92,7 @@ export const StudentSickBayTab: React.FC = () => {
         <div className="mt-4 pt-4 border-t border-rose-900/40 flex flex-wrap items-center justify-between gap-3">
           <div className="flex items-center gap-2 text-xs text-rose-200">
             <Phone className="w-4 h-4 text-amber-400" />
-            <span>Clinic Hotline / On-Duty Matron: <strong>+234 803 234 5678</strong></span>
+            <span>Clinic Hotline / On-Duty Matron: <strong>{schoolInfo.phone || '+234 803 234 5678'}</strong></span>
           </div>
 
           <button

@@ -35,7 +35,6 @@ import {
   FileSpreadsheet,
   FileCheck,
   Lock,
-  Sparkles,
   RefreshCw,
   ArrowRight,
   ArrowLeft,
@@ -72,6 +71,7 @@ interface GeneratedAssessment {
   classLevel: string;
   subject: string;
   term: string;
+  session?: string;
   assessmentType: string;
   difficulty?: string;
   timeAllowed: string;
@@ -202,11 +202,11 @@ export function formatMarkingAidText(assessment: GeneratedAssessment): string {
 
   return [
     `================================================================================`,
-    `                      STANBAX SCHOOLS IBADAN, OYO STATE                        `,
+    `                      ${(assessment.schoolName || 'STANBAX SCHOOLS').toUpperCase()}                        `,
     `          EXAMINATIONS & ASSESSMENT DIRECTORATE • TEACHER MARKING AID           `,
     `      CONFIDENTIAL SCORING GUIDE • FOR EXAMINERS & SCORING MASTERS ONLY         `,
     `================================================================================`,
-    `ACADEMIC SESSION: 2025/2026                 TERM: ${termStr}`,
+    `ACADEMIC SESSION: ${assessment.session || '2026/2027'}                 TERM: ${termStr}`,
     `ASSESSMENT: ${assessmentTypeStr} MARKING AID`,
     `SUBJECT: ${subjectStr}        CLASS: ${classLevelStr}`,
     `DIFFICULTY RIGOR: ${(assessment.difficulty || 'STANDARD').toUpperCase()}    TOTAL ALLOCATION: 100 MARKS`,
@@ -488,7 +488,7 @@ export const AiExamCreatorTab: React.FC = () => {
       }
 
       if (isEarlyYears) {
-        setTimeout(() => setGenerationStep('Synthesizing pictorial visual representations (🍎, 🚗, 🐶, ⭐) for early childhood...'), 1100);
+        setTimeout(() => setGenerationStep('Synthesizing pictorial visual representations for early childhood...'), 1100);
       } else if (selectedPreset === 'waec') {
         setTimeout(() => setGenerationStep('Synthesizing 50 WAEC standard objectives and 6 theory questions grounded in uploaded scheme...'), 1100);
       } else if (selectedPreset === 'jamb') {
@@ -589,10 +589,10 @@ export const AiExamCreatorTab: React.FC = () => {
 
       const paperSavingHeader = [
         `================================================================================`,
-        `                      STANBAX SCHOOLS IBADAN, OYO STATE                        `,
+        `                      ${(schoolInfo.name || 'STANBAX SCHOOLS').toUpperCase()}                        `,
         `           GOVERNMENT APPROVED • ACCREDITED BRITISH-NIGERIAN CURRICULUM          `,
         `================================================================================`,
-        `ACADEMIC SESSION: 2025/2026                 TERM: ${selectedTerm.toUpperCase()}`,
+        `ACADEMIC SESSION: ${assessmentConfig.activeSession || schoolInfo.activeSession || '2026/2027'}                 TERM: ${selectedTerm.toUpperCase()}`,
         `ASSESSMENT: ${assessmentType.toUpperCase()} ${activeGroundedScheme ? `[GROUNDED IN SCHEME]` : ''}`,
         `SUBJECT: ${selectedSubject.toUpperCase()}        CLASS: ${selectedClass.toUpperCase()}`,
         `DIFFICULTY: ${effectiveDifficulty.toUpperCase()}        TIME ALLOWED: ${assessmentData.timeAllowed?.toUpperCase() || (isSecondary ? '2 HOURS' : '1 HOUR')}`,
@@ -843,7 +843,7 @@ export const AiExamCreatorTab: React.FC = () => {
       <body>
         <div class="header">
           <h2>${currentAssessment.schoolName.toUpperCase()}</h2>
-          <p><strong>${currentAssessment.term.toUpperCase()} EXAMINATION • 2025/2026 ACADEMIC SESSION</strong></p>
+          <p><strong>${currentAssessment.term.toUpperCase()} EXAMINATION • ${currentAssessment.session || assessmentConfig.activeSession || schoolInfo.activeSession || '2026/2027'}</strong></p>
           <p>SUBJECT: ${currentAssessment.subject.toUpperCase()} | CLASS: ${currentAssessment.classLevel.toUpperCase()} | TIME: ${currentAssessment.timeAllowed.toUpperCase()}</p>
         </div>
         <h3>SECTION A: OBJECTIVE QUESTIONS (Strict Single-Line Format)</h3>
@@ -2202,7 +2202,7 @@ export const AiExamCreatorTab: React.FC = () => {
                     </h1>
                   </div>
                   <h2 className="text-xs sm:text-sm font-black text-blue-900 uppercase">
-                    {currentAssessment.term} Examination • 2025/2026 Academic Session
+                    {currentAssessment.term} Examination • {currentAssessment.session || assessmentConfig.activeSession || schoolInfo.activeSession || '2026/2027 Academic Session'}
                   </h2>
                   <p className="text-[11px] text-slate-500 font-semibold">
                     Accredited British-Nigerian Basic & Senior Secondary Curriculum • Ibadan, Oyo State
@@ -2692,7 +2692,7 @@ export const AiExamCreatorTab: React.FC = () => {
                   </div>
                   <div className="p-2.5 rounded-xl bg-white border border-emerald-200/80">
                     <span className="text-[10px] text-slate-400 font-bold block uppercase">Session & Term</span>
-                    <span className="font-black text-slate-900">2025/2026 • {currentAssessment.term}</span>
+                    <span className="font-black text-slate-900">{currentAssessment.session || assessmentConfig.activeSession || schoolInfo.activeSession || '2026/2027'} • {currentAssessment.term}</span>
                   </div>
                   <div className="p-2.5 rounded-xl bg-white border border-emerald-200/80">
                     <span className="text-[10px] text-slate-400 font-bold block uppercase">Cognitive Rigor</span>

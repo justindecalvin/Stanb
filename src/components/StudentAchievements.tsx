@@ -3,7 +3,6 @@ import {
   Trophy, 
   Award, 
   Medal, 
-  Sparkles, 
   Star, 
   GraduationCap, 
   BookOpen, 
@@ -227,7 +226,7 @@ export const StudentAchievements: React.FC = () => {
 
           <div className="bg-white p-5 rounded-2xl border border-[#EAE2CE] shadow-xs text-center transform hover:-translate-y-1 transition duration-200">
             <div className="w-10 h-10 mx-auto rounded-xl bg-purple-100 text-purple-800 flex items-center justify-center mb-2 shadow-xs">
-              <Sparkles className="w-5 h-5" />
+              <Award className="w-5 h-5" />
             </div>
             <div className="text-2xl sm:text-3xl font-black text-neutral-900">1st Place</div>
             <div className="text-xs font-bold text-neutral-600 mt-0.5">STAN National STEM Robotics Fair</div>

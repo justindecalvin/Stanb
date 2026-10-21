@@ -34,11 +34,14 @@ import {
   HeartPulse,
   MessageSquare,
   CreditCard,
-  Sparkles
+  FlaskConical,
+  TrendingUp,
+  LineChart
 } from '../RealIcons';
 import { HistoricalSessionRecord, HistoricalTermRecord, GradeRecord, Homework, CustomResult } from '../../types';
 import { generateStudentHistoricalRecords } from '../../data/schoolData';
 import { PortalLoginPage } from '../PortalLoginPage';
+import { StudentProgressDashboard } from './student/StudentProgressDashboard';
 import { StudentLessonNotesTab } from './student/StudentLessonNotesTab';
 import { StudentCbtTab } from './student/StudentCbtTab';
 import { StudentLibraryTab } from './student/StudentLibraryTab';
@@ -53,7 +56,7 @@ import { CertifiedExamResultSlipModal } from './CertifiedExamResultSlipModal';
 import { SchoolChatSystem } from '../chat/SchoolChatSystem';
 import { CampusGallery } from '../CampusGallery';
 import { SchoolLogo } from '../SchoolLogo';
-import { Bot, Crown, FileArchive, ClipboardList } from 'lucide-react';
+import { Crown, FileArchive, ClipboardList } from 'lucide-react';
 
 interface StudentPortalProps {
   onBackToWebsite: () => void;
@@ -162,7 +165,7 @@ export const StudentPortal: React.FC<StudentPortalProps> = ({ onBackToWebsite })
     );
   }
 
-  const [activeTab, setActiveTab] = useState<'overview' | 'chat' | 'calvin_ai' | 'notes' | 'cbt' | 'library' | 'sciencelab' | 'homework' | 'grades' | 'timetable' | 'sickbay' | 'gallery' | 'waec' | 'bece' | 'ncee'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'progress' | 'chat' | 'calvin_ai' | 'notes' | 'cbt' | 'library' | 'sciencelab' | 'homework' | 'grades' | 'timetable' | 'sickbay' | 'gallery' | 'waec' | 'bece' | 'ncee'>('overview');
   const [isSideMenuOpen, setIsSideMenuOpen] = useState(false);
   const [isIdCardOpen, setIsIdCardOpen] = useState(false);
 
@@ -638,6 +641,14 @@ export const StudentPortal: React.FC<StudentPortalProps> = ({ onBackToWebsite })
       description: 'Quick snapshot of attendance, GPA, house points & upcoming classes'
     },
     { 
+      id: 'progress' as const, 
+      label: 'My Academic Progress', 
+      badge: 'Growth Analytics',
+      badgeColor: 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30',
+      icon: TrendingUp,
+      description: 'Term-over-term GPA improvements, subject performance trends & velocity'
+    },
+    { 
       id: 'chat' as const, 
       label: 'Scholar & Faculty Chat Hub', 
       badge: studentChatUnread > 0 ? `${studentChatUnread} New` : 'Class & Clubs',
@@ -654,7 +665,7 @@ export const StudentPortal: React.FC<StudentPortalProps> = ({ onBackToWebsite })
       badgeColor: student.calvinAiAccess?.active 
         ? (student.calvinAiAccess.tier === 'premium' ? 'bg-amber-400/20 text-amber-300 border-amber-400/30' : 'bg-purple-500/20 text-purple-300 border-purple-500/30') 
         : 'bg-rose-500/20 text-rose-300 border-rose-500/30',
-      icon: Bot,
+      icon: GraduationCap,
       description: 'Age & class-tailored AI tutor with deep reasoning, worked steps & exam secrets'
     },
     { 
@@ -706,7 +717,7 @@ export const StudentPortal: React.FC<StudentPortalProps> = ({ onBackToWebsite })
       badgeColor: studentNceeResult 
         ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30' 
         : 'bg-blue-400/20 text-blue-300 border-blue-400/30',
-      icon: Sparkles,
+      icon: Award,
       description: 'Official National Common Entrance Examination scores, percentile aggregate & placement slip'
     }] : []),
     { 
@@ -722,7 +733,7 @@ export const StudentPortal: React.FC<StudentPortalProps> = ({ onBackToWebsite })
       label: 'Virtual Science Lab Simulator', 
       badge: 'WAEC Practicals',
       badgeColor: 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30',
-      icon: Sparkles,
+      icon: FlaskConical,
       description: 'Hands-on practical experiments for Chemistry Titration, Physics Pendulum & Biology Starch'
     },
     { 
@@ -1093,7 +1104,7 @@ export const StudentPortal: React.FC<StudentPortalProps> = ({ onBackToWebsite })
                     Distinguished Stanbax Alumni Record
                   </span>
                   <span className="px-2.5 py-0.5 rounded-full bg-amber-500/30 text-amber-200 text-[10px] font-extrabold uppercase border border-amber-400/40">
-                    Graduated {student.graduationSession || '2024/2025'}
+                    Graduated {student.graduationSession || schoolInfo.activeSession || '2026/2027'}
                   </span>
                 </div>
                 <p className="text-xs text-amber-100/90 mt-0.5 leading-relaxed">
@@ -1285,6 +1296,40 @@ export const StudentPortal: React.FC<StudentPortalProps> = ({ onBackToWebsite })
                 </div>
               </div>
 
+              {/* My Progress & GPA Improvement Snapshot Banner */}
+              <div className="bg-gradient-to-r from-blue-950 via-slate-900 to-indigo-950 text-white rounded-3xl p-5 sm:p-6 shadow-sm border border-blue-800/60 flex flex-col sm:flex-row sm:items-center justify-between gap-5 relative overflow-hidden">
+                <div className="flex items-center gap-4">
+                  <div className="w-12 h-12 rounded-2xl bg-emerald-500/20 border border-emerald-400/30 flex items-center justify-center shrink-0">
+                    <TrendingUp className="w-6 h-6 text-emerald-400" />
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="text-[10px] font-black uppercase tracking-wider px-2.5 py-0.5 rounded-full bg-emerald-400/20 text-emerald-300 border border-emerald-400/30">
+                        Academic Growth
+                      </span>
+                      <span className="text-xs text-blue-200">
+                        Term-over-Term Analytics
+                      </span>
+                    </div>
+                    <h4 className="font-black text-base text-white mt-1">
+                      My Academic Progress & Recharts Trajectory
+                    </h4>
+                    <p className="text-xs text-blue-100/80 leading-relaxed mt-0.5">
+                      Current Term Average: <strong>{student.termAverage}%</strong> &bull; CGPA: <strong>{calculateGpa(grades).gpa.toFixed(2)}</strong> ({calculateGpa(grades).classification})
+                    </p>
+                  </div>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => setActiveTab('progress')}
+                  className="px-4 py-2.5 rounded-xl bg-amber-400 hover:bg-amber-300 text-slate-950 font-black text-xs transition flex items-center justify-center gap-2 shadow-sm cursor-pointer shrink-0"
+                >
+                  <TrendingUp className="w-4 h-4 text-slate-950" />
+                  <span>Open Progress Dashboard →</span>
+                </button>
+              </div>
+
               {/* Admin Calvin AI Token Activation Prompt Banner */}
               {student.tokenPrompt && student.tokenPrompt.status === 'pending' && (
                 <div className="bg-gradient-to-r from-amber-500/15 via-indigo-500/15 to-purple-500/15 border-2 border-indigo-400/80 rounded-3xl p-5 sm:p-6 shadow-md relative overflow-hidden animate-in fade-in slide-in-from-top-3">
@@ -1292,12 +1337,12 @@ export const StudentPortal: React.FC<StudentPortalProps> = ({ onBackToWebsite })
                     <div className="space-y-2">
                       <div className="flex items-center gap-2 flex-wrap">
                         <span className="px-3 py-1 rounded-full bg-indigo-700 text-white text-[10px] font-black uppercase tracking-wider flex items-center gap-1.5 shadow-xs">
-                          <Bot className="w-3.5 h-3.5 text-amber-300" />
+                          <GraduationCap className="w-3.5 h-3.5 text-amber-300" />
                           <span>Administrative Token Activation Prompt</span>
                         </span>
                         {student.tokenPrompt.tier && (
                           <span className="text-[10px] font-extrabold px-2.5 py-0.5 rounded-full bg-amber-100 text-amber-900 border border-amber-300">
-                            {student.tokenPrompt.tier === 'premium' ? '👑 Premium Masterclass' : '✨ Regular Pass'}
+                            {student.tokenPrompt.tier === 'premium' ? 'Premium Masterclass' : 'Regular Pass'}
                           </span>
                         )}
                         {student.tokenPrompt.durationLabel && (
@@ -1330,7 +1375,7 @@ export const StudentPortal: React.FC<StudentPortalProps> = ({ onBackToWebsite })
                         }}
                         className="flex-1 sm:flex-none px-5 py-3 rounded-2xl bg-indigo-600 hover:bg-indigo-700 text-white font-black text-xs shadow-md shadow-indigo-600/30 transition-all flex items-center justify-center gap-2 cursor-pointer active:scale-95"
                       >
-                        <Bot className="w-4 h-4 text-emerald-300" />
+                        <GraduationCap className="w-4 h-4 text-emerald-300" />
                         <span>Activate & Launch Calvin AI →</span>
                       </button>
                       <button
@@ -1368,10 +1413,10 @@ export const StudentPortal: React.FC<StudentPortalProps> = ({ onBackToWebsite })
                             : 'bg-rose-500 text-white animate-pulse'
                         }`}>
                           {currentWaecRegistration?.status === 'verified'
-                            ? '✓ Bio-Data Verified'
+                            ? 'Bio-Data Verified'
                             : currentWaecRegistration?.status === 'submitted'
-                            ? '⏳ Submitted (Pending Clearance)'
-                            : '⚠️ Mandatory Registration Required'}
+                            ? 'Submitted (Pending Clearance)'
+                            : 'Mandatory Registration Required'}
                         </span>
                         {waecPromptBroadcast?.deadline && (
                           <span className="text-[10px] font-bold text-amber-300 bg-amber-950/60 px-2 py-0.5 rounded-lg border border-amber-500/30">
@@ -1530,7 +1575,7 @@ export const StudentPortal: React.FC<StudentPortalProps> = ({ onBackToWebsite })
                   <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                     <div className="flex items-center gap-3">
                       <div className="w-11 h-11 rounded-2xl bg-emerald-600 text-white flex items-center justify-center font-black shadow-xs shrink-0">
-                        <Sparkles className="w-6 h-6" />
+                        <Award className="w-6 h-6" />
                       </div>
                       <div>
                         <div className="flex items-center gap-2 flex-wrap">
@@ -1635,7 +1680,7 @@ export const StudentPortal: React.FC<StudentPortalProps> = ({ onBackToWebsite })
               <div className="bg-linear-to-r from-indigo-900 via-purple-900 to-blue-950 text-white rounded-3xl p-5 sm:p-6 shadow-xs border border-purple-500/20 relative overflow-hidden flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <div className="relative z-10 flex items-center gap-4">
                   <div className="w-12 h-12 rounded-2xl bg-indigo-500/20 border border-indigo-400/30 flex items-center justify-center shrink-0">
-                    <Bot className="w-7 h-7 text-indigo-300 animate-pulse" />
+                    <GraduationCap className="w-7 h-7 text-indigo-300" />
                   </div>
                   <div>
                     <div className="flex items-center gap-2">
@@ -1653,7 +1698,7 @@ export const StudentPortal: React.FC<StudentPortalProps> = ({ onBackToWebsite })
                   onClick={() => setActiveTab('calvin_ai')}
                   className="relative z-10 bg-indigo-500 hover:bg-indigo-600 text-white text-xs font-bold px-4 py-2.5 rounded-xl shadow-md transition-all flex items-center gap-1.5 justify-center shrink-0 cursor-pointer"
                 >
-                  <Bot className="w-4 h-4" />
+                  <GraduationCap className="w-4 h-4" />
                   <span>{student.calvinAiAccess?.active ? 'Launch Calvin AI →' : 'Redeem Token / Launch →'}</span>
                 </button>
               </div>
@@ -1774,6 +1819,16 @@ export const StudentPortal: React.FC<StudentPortalProps> = ({ onBackToWebsite })
               </div>
             </div>
           </div>
+        )}
+
+        {/* TAB: MY ACADEMIC PROGRESS & PERFORMANCE TRENDS (RECHARTS VISUAL DASHBOARD) */}
+        {activeTab === 'progress' && (
+          <StudentProgressDashboard
+            student={student}
+            studentHistory={studentHistory}
+            onOpenCalvinAi={() => setActiveTab('calvin_ai')}
+            onOpenGradesTab={() => setActiveTab('grades')}
+          />
         )}
 
         {/* TAB: SCHOLAR & FACULTY CHAT HUB */}
@@ -2012,7 +2067,7 @@ export const StudentPortal: React.FC<StudentPortalProps> = ({ onBackToWebsite })
                             : 'text-emerald-950 hover:bg-emerald-100/70 bg-emerald-50 border border-emerald-200'
                         }`}
                       >
-                        <Sparkles className="w-3.5 h-3.5 text-emerald-600" />
+                        <Award className="w-3.5 h-3.5 text-emerald-600" />
                         <span>Common Entrance (NCEE)</span>
                         {studentNceeResult && (
                           <span className="w-2 h-2 rounded-full bg-amber-400 inline-block" title="Result Certified" />
@@ -2891,7 +2946,7 @@ export const StudentPortal: React.FC<StudentPortalProps> = ({ onBackToWebsite })
                     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-5 border-b border-slate-200">
                       <div className="flex items-center gap-3.5">
                         <div className="w-12 h-12 rounded-2xl bg-emerald-600 text-white flex items-center justify-center font-black shadow-xs shrink-0">
-                          <Sparkles className="w-6 h-6" />
+                          <Award className="w-6 h-6" />
                         </div>
                         <div>
                           <div className="flex items-center gap-2">
@@ -3014,7 +3069,7 @@ export const StudentPortal: React.FC<StudentPortalProps> = ({ onBackToWebsite })
                 ) : (
                   <div className="bg-white rounded-3xl p-10 text-center shadow-sm border border-slate-200 space-y-3">
                     <div className="w-12 h-12 mx-auto rounded-2xl bg-emerald-100 text-emerald-800 flex items-center justify-center font-black">
-                      <Sparkles className="w-6 h-6" />
+                      <Award className="w-6 h-6" />
                     </div>
                     <h4 className="font-black text-slate-900 text-base">National Common Entrance Results Not Yet Posted</h4>
                     <p className="text-xs text-slate-500 max-w-md mx-auto leading-relaxed">
@@ -3077,8 +3132,9 @@ export const StudentPortal: React.FC<StudentPortalProps> = ({ onBackToWebsite })
                           <Eye className="w-3.5 h-3.5 text-amber-400" />
                           <span>View Certified Slip</span>
                         </button>
-                        <span className="text-[10px] text-slate-400">
-                          🔒 Locked (Admin only)
+                        <span className="text-[10px] text-slate-400 flex items-center gap-1">
+                          <Lock className="w-3 h-3 text-slate-400" />
+                          <span>Locked (Admin only)</span>
                         </span>
                       </div>
                     </div>
@@ -3351,7 +3407,7 @@ export const StudentPortal: React.FC<StudentPortalProps> = ({ onBackToWebsite })
             ) : (
               <div className="bg-white rounded-3xl p-10 text-center shadow-sm border border-slate-200 space-y-3">
                 <div className="w-12 h-12 mx-auto rounded-2xl bg-emerald-100 text-emerald-800 flex items-center justify-center font-black">
-                  <Sparkles className="w-6 h-6" />
+                  <Award className="w-6 h-6" />
                 </div>
                 <h4 className="font-black text-slate-900 text-base">National Common Entrance Results Not Yet Posted</h4>
                 <p className="text-xs text-slate-500 max-w-md mx-auto leading-relaxed">

@@ -9,8 +9,7 @@ import {
   FileText, 
   ExternalLink,
   Tag,
-  BookMarked,
-  Sparkles
+  BookMarked
 } from '../../RealIcons';
 import { LibraryBookItem } from '../../../types';
 import { DigitalLibraryLounge } from '../DigitalLibraryLounge';
@@ -101,7 +100,7 @@ export const StudentLibraryTab: React.FC = () => {
               : 'bg-white text-slate-700 hover:bg-slate-100 border border-slate-200'
           }`}
         >
-          <Sparkles className="w-3.5 h-3.5 text-amber-400" />
+          <BookOpen className="w-3.5 h-3.5 text-amber-400" />
           <span>Interactive Reading Lounge & E-Books</span>
         </button>
 

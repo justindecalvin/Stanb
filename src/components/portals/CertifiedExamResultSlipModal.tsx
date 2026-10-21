@@ -111,11 +111,11 @@ export const CertifiedExamResultSlipModal: React.FC<CertifiedExamResultSlipModal
     <table class="header-table">
       <tr>
         <td class="crest-col">
-          <div style="width: 70px; height: 70px; border-radius: 50%; background: #1e3a8a; color: #fbbf24; font-size: 26px; font-weight: 900; line-height: 70px; margin: 0 auto; text-align: center;">STX</div>
+          <div style="width: 70px; height: 70px; border-radius: 50%; background: #1e3a8a; color: #fbbf24; font-size: 24px; font-weight: 900; line-height: 70px; margin: 0 auto; text-align: center;">${schoolInfo.name ? schoolInfo.name.split(' ').map(w => w[0]).filter(Boolean).slice(0, 3).join('') : 'STX'}</div>
         </td>
         <td class="title-col">
           <h1 class="school-title">${schoolInfo.name}</h1>
-          <p class="school-sub">${schoolInfo.location} • Phone: ${schoolInfo.phone} • Email: ict@stanbaxschools.edu.ng</p>
+          <p class="school-sub">${schoolInfo.location || schoolInfo.address || `${schoolInfo.city}, ${schoolInfo.state}`} • Phone: ${schoolInfo.phone} • Email: ${schoolInfo.email || 'info@stanbaxschools.edu.ng'}</p>
           <div style="font-size: 11px; font-weight: 800; color: #b45309; margin-top: 4px; text-transform: uppercase;">
             ${boardName}
           </div>
@@ -191,7 +191,7 @@ export const CertifiedExamResultSlipModal: React.FC<CertifiedExamResultSlipModal
     </div>
 
     <div class="locked-notice">
-      🔒 OFFICIAL PERMANENT LEDGER RECORD • This document is sealed and certified by Stanbax Academic Registry in accordance with Ministry of Education regulations. Only authorized School Administrators possess cryptographic privilege to alter or moderate marks.
+      OFFICIAL PERMANENT LEDGER RECORD • This document is sealed and certified by Stanbax Academic Registry in accordance with Ministry of Education regulations. Only authorized School Administrators possess cryptographic privilege to alter or moderate marks.
     </div>
 
     <div class="footer-grid">

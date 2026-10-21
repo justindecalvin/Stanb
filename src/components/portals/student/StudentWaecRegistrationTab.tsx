@@ -11,7 +11,6 @@ import {
   Camera, 
   AlertCircle, 
   Info, 
-  Sparkles, 
   ShieldCheck, 
   User, 
   Mail, 
@@ -315,7 +314,7 @@ export const StudentWaecRegistrationTab: React.FC<StudentWaecRegistrationTabProp
 
       setSaveSuccessMsg(
         status === 'submitted'
-          ? '🎉 Official WAEC Bio-Data and 9 Subjects submitted successfully! Your submission is now awaiting final administrative clearance.'
+          ? 'Official WAEC Bio-Data and 9 Subjects submitted successfully! Your submission is now awaiting final administrative clearance.'
           : 'Draft registration details saved to your local profile.'
       );
       setTimeout(() => setSaveSuccessMsg(null), 5000);

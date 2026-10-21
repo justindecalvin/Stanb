@@ -6,7 +6,8 @@ import {
   Send, 
   CheckCircle2, 
   Clock, 
-  Sparkles, 
+  Zap,
+  Loader2, 
   User, 
   Edit3, 
   ShieldCheck, 
@@ -805,8 +806,12 @@ export const AdminVisitorInquiriesSubTab: React.FC = () => {
                         className="px-2.5 py-1 rounded-xl bg-purple-100 hover:bg-purple-200 text-purple-900 font-extrabold text-[11px] flex items-center gap-1 transition cursor-pointer border border-purple-300 disabled:opacity-50 whitespace-nowrap"
                         title="Draft tailored answer using Calvin AI based on school handbook"
                       >
-                        <Sparkles className={`w-3.5 h-3.5 text-purple-600 ${isGeneratingAiDraft ? 'animate-spin' : ''}`} />
-                        <span>{isGeneratingAiDraft ? 'Drafting...' : 'Calvin AI Smart Draft'}</span>
+                        {isGeneratingAiDraft ? (
+                          <Loader2 className="w-3.5 h-3.5 text-purple-600 animate-spin" />
+                        ) : (
+                          <Zap className="w-3.5 h-3.5 text-purple-600" />
+                        )}
+                        <span>{isGeneratingAiDraft ? 'Drafting...' : 'Calvin Assistant Smart Draft'}</span>
                       </button>
 
                       <button

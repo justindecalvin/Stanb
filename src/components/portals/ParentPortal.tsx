@@ -61,7 +61,8 @@ export const ParentPortal: React.FC<ParentPortalProps> = ({ onBackToWebsite }) =
     assessmentConfig,
     calculateGrade,
     calculateGpa,
-    isCgpaActiveForClass
+    isCgpaActiveForClass,
+    houseStandings
   } = useSchool();
 
   // If not authenticated, render login
@@ -448,9 +449,26 @@ export const ParentPortal: React.FC<ParentPortalProps> = ({ onBackToWebsite }) =
                     <span className="text-stone-500">Class Enrolled:</span>
                     <span className="font-bold text-stone-900">{selectedChild.grade}</span>
                   </div>
-                  <div className="flex justify-between">
-                    <span className="text-stone-500">House Color:</span>
-                    <span className="font-bold text-stone-900">{selectedChild.house || 'Blue Sapphire House'}</span>
+                  <div className="flex justify-between items-center">
+                    <span className="text-stone-500">Athletic House:</span>
+                    {(() => {
+                      const matchedHouse = (houseStandings || []).find(h => 
+                        h.name.toLowerCase() === (selectedChild.house || '').toLowerCase() ||
+                        h.name.toLowerCase().includes((selectedChild.house || '').toLowerCase()) ||
+                        (selectedChild.house || '').toLowerCase().includes(h.name.toLowerCase())
+                      ) || houseStandings?.[0];
+                      return (
+                        <span className="font-bold text-stone-900 flex items-center gap-1.5">
+                          {matchedHouse?.color && (
+                            <span 
+                              className="w-2.5 h-2.5 rounded-full inline-block shrink-0 shadow-2xs border border-white" 
+                              style={{ backgroundColor: matchedHouse.color }} 
+                            />
+                          )}
+                          <span>{selectedChild.house || matchedHouse?.name || 'Unassigned'}</span>
+                        </span>
+                      );
+                    })()}
                   </div>
                   <div className="flex justify-between">
                     <span className="text-stone-500">Academic Session:</span>

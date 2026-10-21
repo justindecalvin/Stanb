@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { 
-  Sparkles, 
+  FlaskConical, 
   CheckCircle2, 
   RotateCcw, 
   Clock, 
@@ -47,7 +47,7 @@ export const VirtualScienceLab: React.FC = () => {
       <div className="bg-gradient-to-r from-blue-950 via-indigo-950 to-neutral-900 text-white p-6 rounded-3xl shadow-sm border border-neutral-800 flex flex-col md:flex-row md:items-center justify-between gap-5">
         <div className="space-y-1.5">
           <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-blue-500/20 text-blue-300 border border-blue-400/30 text-[11px] font-black uppercase tracking-wider">
-            <Sparkles className="w-3.5 h-3.5 text-blue-400" />
+            <FlaskConical className="w-3.5 h-3.5 text-blue-400" />
             <span>WAEC WASSCE & Cambridge Practical Laboratory</span>
           </div>
           <h2 className="text-xl sm:text-2xl font-black">

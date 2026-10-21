@@ -16,6 +16,7 @@ import {
   FileText
 } from '../../RealIcons';
 import { CustomResultsManagerModal } from './CustomResultsManagerModal';
+import { FastClassScoreEntry } from '../tutor/FastClassScoreEntry';
 
 export const AdminResultCollationTab: React.FC = () => {
   const { 
@@ -43,6 +44,7 @@ export const AdminResultCollationTab: React.FC = () => {
   const [successMsg, setSuccessMsg] = useState<string>('');
   const [selectedRankingClass, setSelectedRankingClass] = useState<string>('JSS 1 Gold');
   const [showCustomResultsModal, setShowCustomResultsModal] = useState<boolean>(false);
+  const [showFastScoreModal, setShowFastScoreModal] = useState<boolean>(false);
 
   const totalAssessmentMax = Number(ca1Max) + Number(ca2Max) + Number(ca3Max) + Number(examMax);
 
@@ -181,10 +183,18 @@ export const AdminResultCollationTab: React.FC = () => {
           </span>
           <button
             type="button"
-            onClick={() => setShowCustomResultsModal(true)}
+            onClick={() => setShowFastScoreModal(true)}
             className="px-4 py-2 rounded-2xl bg-amber-400 hover:bg-amber-300 text-blue-950 font-black text-xs transition shadow-sm flex items-center gap-1.5 cursor-pointer"
           >
-            <FileText className="w-3.5 h-3.5" />
+            <Award className="w-3.5 h-3.5 text-blue-950" />
+            <span>Fast Class Scoring Desk (Card Grid)</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => setShowCustomResultsModal(true)}
+            className="px-4 py-2 rounded-2xl bg-white/10 hover:bg-white/20 text-white font-black text-xs transition border border-white/20 flex items-center gap-1.5 cursor-pointer"
+          >
+            <FileText className="w-3.5 h-3.5 text-amber-300" />
             <span>Upload / Manage Custom Results</span>
           </button>
         </div>
@@ -1046,6 +1056,38 @@ export const AdminResultCollationTab: React.FC = () => {
         <CustomResultsManagerModal
           onClose={() => setShowCustomResultsModal(false)}
         />
+      )}
+
+      {showFastScoreModal && (
+        <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-md overflow-y-auto p-3 sm:p-6 flex items-start justify-center">
+          <div className="bg-slate-100 rounded-3xl max-w-7xl w-full p-4 sm:p-6 shadow-2xl border border-slate-300 relative my-6">
+            <div className="flex items-center justify-between pb-3 mb-4 border-b border-slate-200">
+              <div className="flex items-center gap-2">
+                <span className="p-2 rounded-xl bg-blue-900 text-amber-400 font-black">
+                  <Award className="w-5 h-5 text-amber-400" />
+                </span>
+                <div>
+                  <h3 className="text-base font-black text-slate-900">
+                    Administrator Multi-Student Scoring & Moderation Desk
+                  </h3>
+                  <p className="text-xs text-slate-500">
+                    Direct access to score any classroom and subject. Scores sync in real time to scholar and parent portals.
+                  </p>
+                </div>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setShowFastScoreModal(false)}
+                className="px-3.5 py-1.5 rounded-xl bg-white hover:bg-slate-200 text-slate-700 font-bold text-xs shadow-xs border border-slate-300 cursor-pointer"
+              >
+                Close Desk
+              </button>
+            </div>
+
+            <FastClassScoreEntry />
+          </div>
+        </div>
       )}
     </div>
   );

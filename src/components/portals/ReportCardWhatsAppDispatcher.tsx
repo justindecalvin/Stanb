@@ -52,7 +52,8 @@ export const ReportCardWhatsAppDispatcher: React.FC = () => {
     }
   ]);
 
-  const activeStudent = students.find(s => s.id === selectedStudentId) || students[0] || {
+  const foundStudent = students.find(s => s.id === selectedStudentId) || students[0];
+  const activeStudent = foundStudent || {
     id: 'stu-1',
     name: 'Tiwa Savage',
     grade: 'SSS 2',
@@ -63,32 +64,52 @@ export const ReportCardWhatsAppDispatcher: React.FC = () => {
   const isMid = reportType === 'mid';
   const reportTypeName = isMid ? 'Mid-Term Continuous Assessment Dossier' : 'Official End-of-Term Terminal Dossier';
   const token = `STB-RPT-${activeStudent.id}-${Date.now().toString().slice(-4)}`;
-  const secureReportLink = `https://stanbaxschools.edu.ng/secure-dossier?id=${activeStudent.id}&token=${token}`;
+  const secureReportLink = `${window.location.origin}/#portal-login`;
 
-  const formattedWhatsAppMessage = `STANBAX SCHOOLS IBADAN
+  // Dynamic academic performance calculations for the specific student
+  const classStudents = students.filter(s => (s.grade && s.grade === activeStudent.grade) || (s.classId && s.classId === activeStudent.classId));
+  const sortedClass = [...classStudents].sort((a, b) => (b.termAverage || 0) - (a.termAverage || 0));
+  const studentRankIndex = sortedClass.findIndex(s => s.id === activeStudent.id);
+  const rankOrdinal = studentRankIndex >= 0 
+    ? `${studentRankIndex + 1}${['st', 'nd', 'rd'][(studentRankIndex + 1) % 10 - 1] || 'th'} of ${classStudents.length} Scholars` 
+    : 'Class Standing Certified';
+
+  const avgVal = activeStudent.termAverage || activeStudent.cumulativeAnnualAverage || 
+    (activeStudent.grades && activeStudent.grades.length > 0 
+      ? Math.round(activeStudent.grades.reduce((sum: number, g: { total?: number }) => sum + (g.total || 0), 0) / activeStudent.grades.length) 
+      : 85);
+
+  const formattedResumption = schoolInfo.resumptionDate 
+    ? new Date(schoolInfo.resumptionDate).toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })
+    : 'To be announced by Academic Directorate';
+
+  const bursaryStatusStr = activeStudent.feeBalance && activeStudent.feeBalance > 0 
+    ? `Outstanding Balance (₦${activeStudent.feeBalance.toLocaleString()})`
+    : 'Fully Cleared';
+
+  const formattedWhatsAppMessage = `${(schoolInfo.name || 'STANBAX SCHOOLS').toUpperCase()}
 Official Academic Directorate • Terminal Report Card Dispatch
 
 Dear Respected Parent / Guardian of ${activeStudent.name},
 
-We are pleased to formally share the ${reportTypeName} for ${activeStudent.name} (${activeStudent.grade} • ${activeStudent.term || '2nd Term'}).
+We are pleased to formally share the ${reportTypeName} for ${activeStudent.name} (${activeStudent.grade} • ${activeStudent.term || schoolInfo.activeTerm || 'Active Term'}).
 
 Academic Summary:
-• Overall Average: 92.4% (Grade A1 Distinction)
-• Class Position: 2nd of 32 Scholars
-• Biometric School Attendance: 59 / 60 Sessions
-• Bursary Status: Fully Cleared
+• Overall Average: ${avgVal}%
+• Class Position: ${rankOrdinal}
+• Bursary Status: ${bursaryStatusStr}
 
 Teacher & Principal Observation:
 "${customNote}"
 
-Secure PDF Report Card Link:
+Secure PDF Report Card Portal:
 ${secureReportLink}
 
-Resumption for the upcoming term: Monday, 27th April 2026.
-For bursary or academic counseling inquiries, contact +234 803 123 4567.
+Resumption for upcoming term: ${formattedResumption}
+For bursary or academic counseling inquiries, contact ${schoolInfo.phone || '+234 803 123 4567'}.
 
 Office of the Principal,
-Stanbax Schools Ibadan.`;
+${schoolInfo.name || 'Stanbax Schools'}.`;
 
   const cleanPhone = parentPhoneNumber.replace(/[^0-9]/g, '');
   const encodedMsg = encodeURIComponent(formattedWhatsAppMessage);

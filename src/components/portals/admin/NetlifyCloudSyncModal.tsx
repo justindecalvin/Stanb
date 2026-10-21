@@ -15,6 +15,7 @@ import {
   Globe, 
   RefreshCw,
   HelpCircle,
+  Lightbulb,
   Smartphone,
   Laptop
 } from '../../RealIcons';
@@ -322,8 +323,9 @@ export const NetlifyCloudSyncModal: React.FC<NetlifyCloudSyncModalProps> = ({
                 </div>
               </div>
 
-              <div className="p-2.5 rounded-xl bg-stone-800/50 border border-stone-800 text-[11px] text-stone-300 font-sans">
-                💡 <strong>Important Final Step on Netlify:</strong> After saving the 2 environment variables, go to Netlify <strong>Deploys</strong> and click <strong>Trigger deploy → Deploy site</strong>. Vite embeds environment variables at build time!
+              <div className="p-2.5 rounded-xl bg-stone-800/50 border border-stone-800 text-[11px] text-stone-300 font-sans flex items-start gap-1.5">
+                <Lightbulb className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
+                <span><strong>Important Final Step on Netlify:</strong> After saving the 2 environment variables, go to Netlify <strong>Deploys</strong> and click <strong>Trigger deploy → Deploy site</strong>. Vite embeds environment variables at build time!</span>
               </div>
             </div>
           </div>

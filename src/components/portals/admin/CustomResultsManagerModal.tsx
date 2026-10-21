@@ -19,7 +19,8 @@ import {
   Filter,
   Search,
   BookOpen,
-  Sparkles,
+  Zap,
+  FileCheck,
   Lock,
   Edit3,
   RotateCcw,
@@ -488,7 +489,7 @@ export const CustomResultsManagerModal: React.FC<CustomResultsManagerModalProps>
                 : 'border-transparent text-slate-500 hover:text-slate-900'
             }`}
           >
-            <Sparkles className="w-4 h-4 text-emerald-600" />
+            <Award className="w-4 h-4 text-emerald-600" />
             <span>Common Entrance (Primary 5 & JSS 1) ({nceeCohortStudents.length})</span>
           </button>
         </div>
@@ -622,7 +623,7 @@ export const CustomResultsManagerModal: React.FC<CustomResultsManagerModalProps>
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-gradient-to-r from-amber-50 to-blue-50 border border-amber-200 p-4 rounded-3xl">
               <div>
                 <h3 className="text-xs font-black text-blue-950 uppercase tracking-wider flex items-center gap-1.5">
-                  <Sparkles className="w-4 h-4 text-amber-500" />
+                  <Zap className="w-4 h-4 text-amber-500" />
                   <span>Admin Fast Actions for {selectedStudent?.name}</span>
                 </h3>
                 <p className="text-[11px] text-slate-600">
@@ -647,7 +648,7 @@ export const CustomResultsManagerModal: React.FC<CustomResultsManagerModalProps>
                   className="px-3.5 py-2 rounded-xl bg-emerald-700 hover:bg-emerald-600 text-white text-xs font-black shadow-xs transition cursor-pointer flex items-center gap-1.5"
                   title="Post National Common Entrance result"
                 >
-                  <Sparkles className="w-3.5 h-3.5 text-emerald-200" />
+                  <Award className="w-3.5 h-3.5 text-emerald-200" />
                   <span>Post Common Entrance (NCEE)</span>
                 </button>
 
@@ -695,7 +696,7 @@ export const CustomResultsManagerModal: React.FC<CustomResultsManagerModalProps>
                 {/* 1-Click Subject Preset Switchers */}
                 <div className="p-3 rounded-2xl bg-slate-50 border border-slate-200 flex flex-wrap items-center justify-between gap-2 text-xs">
                   <span className="font-bold text-slate-700 flex items-center gap-1.5 text-[11px]">
-                    <Sparkles className="w-3.5 h-3.5 text-amber-500" />
+                    <BookOpen className="w-3.5 h-3.5 text-amber-500" />
                     <span>Quick-Fill Subject Templates:</span>
                   </span>
                   <div className="flex items-center gap-1.5">
@@ -1231,7 +1232,7 @@ export const CustomResultsManagerModal: React.FC<CustomResultsManagerModalProps>
             <div className="bg-emerald-50 border border-emerald-200 rounded-2xl p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
               <div>
                 <h3 className="text-sm font-black text-emerald-950 flex items-center gap-2">
-                  <Sparkles className="w-4 h-4 text-emerald-700" />
+                  <Award className="w-4 h-4 text-emerald-700" />
                   <span>National Common Entrance Examination (NCEE) Ledger</span>
                 </h3>
                 <p className="text-[11px] text-emerald-900 mt-0.5">

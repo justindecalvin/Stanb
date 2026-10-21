@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useMemo } from 'react';
 import { 
   X, 
   Upload, 
@@ -16,13 +16,15 @@ import {
   Mail, 
   Copy, 
   Check, 
-  UserPlus,
-  ArrowRight,
-  Image as ImageIcon,
-  Award
+  UserPlus, 
+  ArrowRight, 
+  Image as ImageIcon, 
+  Award, 
+  Trophy 
 } from './RealIcons';
 import { useSchool } from '../context/SchoolContext';
 import { StudentProfile } from '../types';
+import { DEFAULT_HOUSE_STANDINGS } from '../data/schoolData';
 import { isRemoteEnabled } from '../lib/supabase';
 import { Database } from 'lucide-react';
 
@@ -49,9 +51,14 @@ export const StudentRegistrationModal: React.FC<StudentRegistrationModalProps> =
   onRegistrationSuccess,
   initialTab = 'student'
 }) => {
-  const { classes, registerStudent, registerAlumniAccount, loginStudent } = useSchool();
+  const { classes, registerStudent, registerAlumniAccount, loginStudent, houseStandings } = useSchool();
 
   const [accountType, setAccountType] = useState<'student' | 'alumni'>(initialTab);
+
+  // Dynamic houses from SchoolContext (updated in Admin > Inter-House Sports)
+  const availableHouses = useMemo(() => {
+    return houseStandings && houseStandings.length > 0 ? houseStandings : DEFAULT_HOUSE_STANDINGS;
+  }, [houseStandings]);
 
   // Alumni-specific fields
   const [graduationYear, setGraduationYear] = useState<string>(String(new Date().getFullYear() - 1));
@@ -64,12 +71,25 @@ export const StudentRegistrationModal: React.FC<StudentRegistrationModalProps> =
   // Form fields
   const [fullName, setFullName] = useState('');
   const [grade, setGrade] = useState('');
-  const [house, setHouse] = useState('Sapphire House (Blue)');
+  const [house, setHouse] = useState<string>(() => {
+    const list = houseStandings && houseStandings.length > 0 ? houseStandings : DEFAULT_HOUSE_STANDINGS;
+    return list[0]?.name || 'Sapphire (Blue House)';
+  });
   const [emergencyPhone, setEmergencyPhone] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+
+  // Keep selected house valid whenever availableHouses updates or loads
+  React.useEffect(() => {
+    if (availableHouses.length > 0) {
+      const match = availableHouses.some(h => h.name === house);
+      if (!match) {
+        setHouse(availableHouses[0].name);
+      }
+    }
+  }, [availableHouses, house]);
 
   // Security Question fields
   const [selectedQuestionPreset, setSelectedQuestionPreset] = useState(PRESET_SECURITY_QUESTIONS[0]);
@@ -201,6 +221,7 @@ export const StudentRegistrationModal: React.FC<StudentRegistrationModalProps> =
           phone: emergencyPhone.trim() || '+234 800 000 0000',
           formerRegNumber: formerRegNumber.trim() || undefined,
           formerClassOrSet: formerClassOrSet.trim() || `Class of ${cleanYear}`,
+          formerHouse: house,
           password: password.trim(),
           securityQuestion: finalQuestion,
           securityAnswer: securityAnswer.trim(),
@@ -618,7 +639,7 @@ export const StudentRegistrationModal: React.FC<StudentRegistrationModalProps> =
                     </div>
                   )}
 
-                  {accountType === 'alumni' ? (
+                  {accountType === 'alumni' && (
                     <div>
                       <label className="block text-xs font-bold text-neutral-700 mb-1">
                         Graduating Class / Stream
@@ -631,24 +652,62 @@ export const StudentRegistrationModal: React.FC<StudentRegistrationModalProps> =
                         className="w-full px-3.5 py-2.5 rounded-xl border border-[#EAE2CE] text-sm font-medium focus:ring-2 focus:ring-red-600 outline-none bg-[#FAF7EE] focus:bg-white"
                       />
                     </div>
-                  ) : (
-                    <div>
-                      <label className="block text-xs font-bold text-neutral-700 mb-1">
-                        Athletic House
-                      </label>
-                      <select
-                        value={house}
-                        onChange={(e) => setHouse(e.target.value)}
-                        className="w-full px-3.5 py-2.5 rounded-xl border border-[#EAE2CE] text-sm font-medium focus:ring-2 focus:ring-red-600 outline-none bg-[#FAF7EE] focus:bg-white cursor-pointer"
-                        id="reg-select-house"
-                      >
-                        <option value="Sapphire House (Blue)">Sapphire House (Blue)</option>
-                        <option value="Emerald House (Green)">Emerald House (Green)</option>
-                        <option value="Ruby House (Red)">Ruby House (Red)</option>
-                        <option value="Gold House (Yellow)">Gold House (Yellow)</option>
-                      </select>
-                    </div>
                   )}
+
+                  <div>
+                    <div className="flex items-center justify-between mb-1">
+                      <label className="block text-xs font-bold text-neutral-700">
+                        {accountType === 'alumni' ? 'Former Athletic House' : 'Athletic House'}
+                      </label>
+                      <span className="text-[10px] text-neutral-500 font-semibold flex items-center gap-1">
+                        <Trophy className="w-3 h-3 text-amber-600" />
+                        Inter-House Sports Team
+                      </span>
+                    </div>
+                    <select
+                      value={house}
+                      onChange={(e) => setHouse(e.target.value)}
+                      className="w-full px-3.5 py-2.5 rounded-xl border border-[#EAE2CE] text-sm font-medium focus:ring-2 focus:ring-red-600 outline-none bg-[#FAF7EE] focus:bg-white cursor-pointer"
+                      id="reg-select-house"
+                    >
+                      {availableHouses.map((h) => (
+                        <option key={h.name} value={h.name}>
+                          {h.name} {h.houseMaster ? `(Patron: ${h.houseMaster})` : ''}
+                        </option>
+                      ))}
+                    </select>
+
+                    {/* Selected House Live Info Badge */}
+                    {(() => {
+                      const activeHouse = availableHouses.find(h => h.name === house) || availableHouses[0];
+                      if (!activeHouse) return null;
+                      return (
+                        <div className="mt-2 p-2.5 rounded-xl bg-amber-50/80 border border-amber-200/90 flex items-center justify-between text-xs">
+                          <div className="flex items-center gap-2 min-w-0">
+                            <span
+                              className="w-3.5 h-3.5 rounded-full shrink-0 shadow-2xs border border-white"
+                              style={{ backgroundColor: activeHouse.color || '#2563eb' }}
+                            />
+                            <div className="min-w-0">
+                              <span className="font-bold text-neutral-900 truncate block">
+                                {activeHouse.name}
+                              </span>
+                              {activeHouse.motto && (
+                                <span className="text-[11px] text-neutral-500 italic block truncate">
+                                  "{activeHouse.motto}"
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                          <div className="text-right shrink-0 pl-2">
+                            <span className="text-[10px] font-mono font-bold text-amber-900 bg-amber-100 px-2 py-0.5 rounded-full">
+                              {activeHouse.points} pts
+                            </span>
+                          </div>
+                        </div>
+                      );
+                    })()}
+                  </div>
 
                   {accountType === 'alumni' ? (
                     <div>
@@ -821,8 +880,8 @@ export const StudentRegistrationModal: React.FC<StudentRegistrationModalProps> =
                         </div>
                       )}
                     </div>
-                    <span className="inline-block mt-1.5 text-[10px] font-extrabold text-red-700 uppercase tracking-wider">
-                      {passportPhoto ? '✓ Attached' : 'Report Sheet Photo'}
+                    <span className="inline-flex items-center gap-1 mt-1.5 text-[10px] font-extrabold text-red-700 uppercase tracking-wider">
+                      {passportPhoto ? <><Check className="w-3 h-3 inline text-emerald-600" /> Attached</> : 'Report Sheet Photo'}
                     </span>
                   </div>
 

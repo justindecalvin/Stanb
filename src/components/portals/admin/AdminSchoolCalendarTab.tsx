@@ -14,7 +14,8 @@ import {
   ChevronRight,
   Filter,
   ArrowRight,
-  Tag
+  Tag,
+  X
 } from '../../RealIcons';
 
 type TermFilter = 'All' | '1st Term' | '2nd Term' | '3rd Term';
@@ -551,9 +552,9 @@ export const AdminSchoolCalendarTab: React.FC = () => {
               <button
                 type="button"
                 onClick={() => setModalMode(null)}
-                className="text-stone-400 hover:text-stone-700 text-sm font-black cursor-pointer"
+                className="text-stone-400 hover:text-stone-700 p-1 cursor-pointer"
               >
-                ✕
+                <X className="w-4 h-4" />
               </button>
             </div>
 

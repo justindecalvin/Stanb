@@ -9,8 +9,7 @@ import {
   Building,
   CreditCard,
   Calendar,
-  User,
-  Sparkles
+  User
 } from '../RealIcons';
 import { SchoolInfo, StudentProfile, FeePayment } from '../../types';
 
@@ -80,10 +79,10 @@ export const FeeReceiptModal: React.FC<FeeReceiptModalProps> = ({
               {schoolInfo.name || 'Stanbax Schools Ibadan'}
             </h1>
             <p className="text-xs text-neutral-600 font-semibold mt-0.5">
-              12 Excellence Avenue, Bodija / Oluyole Way, Ibadan, Oyo State, Nigeria
+              {schoolInfo.address ? `${schoolInfo.address}, ${schoolInfo.city}, ${schoolInfo.state}, ${schoolInfo.country}` : 'Plot 12, Stanbax Boulevard, Ring Road, Ibadan, Oyo State, Nigeria'}
             </p>
             <p className="text-[11px] text-neutral-500 font-mono mt-0.5">
-              Phone: +234 803 123 4567 • Email: bursary@stanbaxschools.edu.ng • Portal: stanbaxschools.edu.ng
+              Phone: {schoolInfo.phone || '+234 803 123 4567'} • Email: {schoolInfo.email || 'info@stanbaxschools.edu.ng'}
             </p>
 
             {/* Document Title Badge */}
@@ -105,7 +104,7 @@ export const FeeReceiptModal: React.FC<FeeReceiptModalProps> = ({
             </div>
             <div>
               <span className="text-[10px] font-bold uppercase text-neutral-400 block">Term / Session</span>
-              <span className="font-bold text-neutral-900">{student.term || '2nd Term 2025/2026'}</span>
+              <span className="font-bold text-neutral-900">{student.term || schoolInfo.activeTerm || '1st Term'} {schoolInfo.activeSession ? `• ${schoolInfo.activeSession}` : ''}</span>
             </div>
             <div>
               <span className="text-[10px] font-bold uppercase text-neutral-400 block">Clearance Status</span>
@@ -184,14 +183,14 @@ export const FeeReceiptModal: React.FC<FeeReceiptModalProps> = ({
               </div>
               <div className="text-[11px] space-y-0.5">
                 <span className="font-black text-neutral-900 block">Cryptographic QR Verification</span>
-                <span className="text-neutral-500 block">Scan to verify against the Stanbax Bursary Database</span>
-                <span className="font-mono text-[10px] text-neutral-400">HASH: 78F9A-STB-CLEARANCE-VERIFIED</span>
+                <span className="text-neutral-500 block">Scan to verify against the {schoolInfo.name || 'Stanbax Schools'} Bursary Database</span>
+                <span className="font-mono text-[10px] text-neutral-400">HASH: {(payment.receiptNumber || 'RCP').replace(/[^a-zA-Z0-9]/g, '')}-{(payment.id || 'AUTH').substring(0, 8).toUpperCase()}-VERIFIED</span>
               </div>
             </div>
 
             <div className="text-center sm:text-right space-y-1">
               <div className="inline-block border-b-2 border-neutral-900 pb-1 px-4 text-xs font-black uppercase text-neutral-900">
-                Mr. O. Babalola, FCA
+                {schoolInfo.bursarName || 'Chief Bursar & Finance Desk'}
               </div>
               <div className="text-[10px] font-bold text-neutral-500 block uppercase">
                 Bursar and Directorate of Accounts

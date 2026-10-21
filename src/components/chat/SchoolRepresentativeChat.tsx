@@ -2,8 +2,11 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useSchool } from '../../context/SchoolContext';
 import { 
   X, 
-  Send, 
-  Sparkles, 
+  Send,
+  HelpCircle,
+  School,
+  Zap,
+  Loader2, 
   User, 
   Edit3, 
   Check, 
@@ -448,10 +451,10 @@ export const SchoolRepresentativeChat: React.FC<SchoolRepresentativeChatProps> =
   };
 
   const quickQuestions = [
-    { label: '💳 Tuition Fees & Bursary', text: 'Could you explain the tuition fees breakdown and installment payment options?' },
-    { label: '📝 Admission & Screening', text: 'How do I register for admissions and what are the entrance exam screening dates?' },
-    { label: '📍 Location & Bus Routes', text: 'Where is the school located and what bus transportation routes do you cover in Ibadan?' },
-    { label: '🎓 Dual Curriculum', text: 'Tell me about the British-Nigerian curriculum and WAEC/Cambridge preparations.' },
+    { label: 'Tuition Fees & Bursary', icon: CreditCard, text: 'Could you explain the tuition fees breakdown and installment payment options?' },
+    { label: 'Admission & Screening', icon: FileText, text: 'How do I register for admissions and what are the entrance exam screening dates?' },
+    { label: 'Location & Bus Routes', icon: MapPin, text: 'Where is the school located and what bus transportation routes do you cover in Ibadan?' },
+    { label: 'Dual Curriculum', icon: Award, text: 'Tell me about the British-Nigerian curriculum and WAEC/Cambridge preparations.' },
   ];
 
   return (
@@ -565,16 +568,16 @@ export const SchoolRepresentativeChat: React.FC<SchoolRepresentativeChatProps> =
               </>
             ) : (
               <>
-                <Sparkles className="w-3.5 h-3.5 text-purple-300 shrink-0" />
+                <HelpCircle className="w-3.5 h-3.5 text-purple-300 shrink-0" />
                 <span className="text-purple-200 font-bold truncate">
-                  Rep is Away • Calvin AI answering on their behalf
+                  Rep is Away • Virtual Representative answering on their behalf
                 </span>
               </>
             )}
           </div>
           {copiedLink ? (
-            <span className="text-emerald-300 text-[10px] font-bold shrink-0 animate-pulse">
-              ✓ Link Copied!
+            <span className="text-emerald-300 text-[10px] font-bold shrink-0 animate-pulse flex items-center gap-1">
+              <Check className="w-3 h-3 text-emerald-300 inline" /> Link Copied!
             </span>
           ) : (
             <span className="text-neutral-400 text-[10px] shrink-0 font-medium">
@@ -716,8 +719,8 @@ export const SchoolRepresentativeChat: React.FC<SchoolRepresentativeChatProps> =
         {!schoolRepConfig.isAvailable && messages.length === 0 && (
           <div className="p-3 rounded-2xl bg-purple-50 border border-purple-200/80 text-purple-900 text-xs space-y-1.5 shadow-2xs">
             <div className="flex items-center gap-1.5 font-black text-[11px] text-purple-950">
-              <Sparkles className="w-3.5 h-3.5 text-purple-600" />
-              <span>Calvin AI Virtual Representative Ready</span>
+              <HelpCircle className="w-3.5 h-3.5 text-purple-600" />
+              <span>Virtual Representative Ready</span>
             </div>
             <p className="text-[11px] text-purple-800 leading-relaxed">
               {effectiveRepName} is presently on campus duty. Ask any question below or schedule a screening date! I will provide immediate details on fees and admissions, and the representative can resume live upon returning.
@@ -892,7 +895,7 @@ export const SchoolRepresentativeChat: React.FC<SchoolRepresentativeChatProps> =
                     isAi ? 'bg-purple-700 text-white' : 'bg-emerald-700 text-amber-300'
                   }`}
                 >
-                  {isAi ? <Sparkles className="w-4 h-4 text-purple-200" /> : <ShieldCheck className="w-4 h-4 text-amber-300" />}
+                  {isAi ? <School className="w-4 h-4 text-purple-200" /> : <ShieldCheck className="w-4 h-4 text-amber-300" />}
                 </div>
                 <div className="space-y-1">
                   <div className="flex items-center gap-1.5 flex-wrap">
@@ -1028,8 +1031,8 @@ export const SchoolRepresentativeChat: React.FC<SchoolRepresentativeChatProps> =
                 onClick={() => void handleTriggerCalvinAiStandIn()}
                 className="text-[10px] font-extrabold text-purple-700 hover:text-purple-900 bg-purple-100/90 hover:bg-purple-200 px-2.5 py-1 rounded-lg transition cursor-pointer flex items-center gap-1.5 shadow-2xs"
               >
-                <Sparkles className="w-3 h-3 text-purple-600" />
-                <span>Need an instant answer? Ask Calvin AI to draft right now</span>
+                <Zap className="w-3 h-3 text-purple-600" />
+                <span>Need an instant answer? Request automated draft</span>
               </button>
             </div>
           </div>
@@ -1039,7 +1042,7 @@ export const SchoolRepresentativeChat: React.FC<SchoolRepresentativeChatProps> =
         {isThinking && (
           <div className="flex gap-2.5 items-center text-xs text-purple-700">
             <div className="w-8 h-8 rounded-xl bg-purple-100 flex items-center justify-center shrink-0">
-              <Sparkles className="w-4 h-4 text-purple-600 animate-spin" />
+              <Loader2 className="w-4 h-4 text-purple-600 animate-spin" />
             </div>
             <div className="p-3 rounded-2xl bg-white border border-purple-200 shadow-xs flex items-center gap-2">
               <span className="font-extrabold text-[11px]">Calvin AI is drafting response...</span>
@@ -1067,9 +1070,10 @@ export const SchoolRepresentativeChat: React.FC<SchoolRepresentativeChatProps> =
               type="button"
               onClick={() => void handleSend(q.text)}
               disabled={isThinking}
-              className="px-2.5 py-1 rounded-xl bg-white border border-neutral-200 hover:border-blue-400 hover:bg-blue-50/50 text-[10px] font-extrabold text-neutral-700 whitespace-nowrap transition cursor-pointer shadow-2xs active:scale-95 disabled:opacity-50"
+              className="px-2.5 py-1 rounded-xl bg-white border border-neutral-200 hover:border-blue-400 hover:bg-blue-50/50 text-[10px] font-extrabold text-neutral-700 whitespace-nowrap transition cursor-pointer shadow-2xs active:scale-95 disabled:opacity-50 flex items-center gap-1.5"
             >
-              {q.label}
+              <q.icon className="w-3 h-3 text-neutral-600 shrink-0" />
+              <span>{q.label}</span>
             </button>
           ))}
         </div>

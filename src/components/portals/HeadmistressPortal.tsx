@@ -17,7 +17,6 @@ import {
   ShieldCheck, 
   MessageSquare, 
   Lock, 
-  Sparkles, 
   AlertCircle,
   Menu,
   X

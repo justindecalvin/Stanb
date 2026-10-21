@@ -671,8 +671,9 @@ export const StudentCbtTab: React.FC = () => {
                 <div className="absolute top-2 right-2">
                   <Star className="w-5 h-5 text-amber-500 fill-amber-400" />
                 </div>
-                <div className="w-14 h-14 rounded-2xl bg-amber-400 text-neutral-950 flex items-center justify-center font-black text-xl shadow-md border-2 border-white">
-                  👑 #1
+                <div className="w-14 h-14 rounded-2xl bg-amber-400 text-neutral-950 flex items-center justify-center font-black text-sm shadow-md border-2 border-white gap-1">
+                  <Trophy className="w-4 h-4 text-neutral-950" />
+                  <span>#1</span>
                 </div>
                 <div>
                   <h4 className="font-black text-base text-neutral-900">{leaderboardList[0].studentName}</h4>

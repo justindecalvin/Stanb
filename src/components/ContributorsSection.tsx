@@ -3,7 +3,6 @@ import { useSchool } from '../context/SchoolContext';
 import { Contributor } from '../types';
 import { 
   Users, 
-  Sparkles, 
   Award, 
   ExternalLink, 
   Github, 
@@ -115,7 +114,7 @@ export const ContributorsSection: React.FC<ContributorsSectionProps> = ({ onOpen
                 {/* Highlight Badge */}
                 {isLead && (
                   <div className="absolute -top-3.5 right-6 px-3 py-1 rounded-full bg-gradient-to-r from-amber-400 to-amber-500 text-slate-950 text-[10px] font-black uppercase tracking-wider shadow-sm flex items-center gap-1 border border-amber-200">
-                    <Sparkles className="w-3 h-3 text-slate-950" />
+                    <Award className="w-3 h-3 text-slate-950" />
                     <span>Featured Contributor</span>
                   </div>
                 )}

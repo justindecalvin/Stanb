@@ -14,7 +14,7 @@ import {
   AlertCircle, 
   Users, 
   BookOpen, 
-  Sparkles, 
+  Info, 
   Printer, 
   Trash2, 
   Edit3, 
@@ -573,7 +573,7 @@ export const AdminWaecRegistrationTab: React.FC = () => {
           {actionNotice.type === 'error' ? (
             <AlertCircle className="w-5 h-5 shrink-0 text-rose-600" />
           ) : actionNotice.type === 'info' ? (
-            <Sparkles className="w-5 h-5 shrink-0 text-blue-600" />
+            <Info className="w-5 h-5 shrink-0 text-blue-600" />
           ) : (
             <CheckCircle2 className="w-5 h-5 shrink-0 text-emerald-600" />
           )}
@@ -1242,7 +1242,7 @@ export const AdminWaecRegistrationTab: React.FC = () => {
                                 : 'bg-stone-50 text-stone-600 border-stone-200 hover:bg-stone-100'
                             }`}
                           >
-                            {isChecked && '✓ '}{cls}
+                            {isChecked && <Check className="w-3 h-3 inline mr-1 text-emerald-700" />}{cls}
                           </button>
                         );
                       })}

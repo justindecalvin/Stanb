@@ -556,6 +556,8 @@ export interface SchoolInfo {
   academicsSignature?: string;
   academicsName?: string;
   academicsTitle?: string;
+  bursarName?: string;
+  bursarTitle?: string;
 }
 
 export interface SchoolClass {
@@ -1191,7 +1193,7 @@ export interface SchoolChatMessage {
   senderRole: UserRole;
   senderAvatar?: string;
   senderSubtext?: string; // e.g. "SSS 2 Scholar", "JETS Patron", "Parent of Tiwa", "School Admin"
-  senderBadge?: string; // e.g. "⭐ Class Prefect", "👑 President", "🏅 Head Girl"
+  senderBadge?: string; // e.g. "Class Prefect", "President", "Head Girl"
   content: string;
   timestamp: string;
   attachments?: Array<{

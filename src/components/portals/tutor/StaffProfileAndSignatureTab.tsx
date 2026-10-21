@@ -254,13 +254,13 @@ export const StaffProfileAndSignatureTab: React.FC<StaffProfileAndSignatureTabPr
             <div className="flex items-center justify-between gap-4">
               <span className="text-slate-300">Photo Status:</span>
               <span className={`font-bold ${photoPreview ? 'text-emerald-400' : 'text-amber-300'}`}>
-                {photoPreview ? '✓ Uploaded' : 'Pending Upload'}
+                {photoPreview ? 'Uploaded' : 'Pending Upload'}
               </span>
             </div>
             <div className="flex items-center justify-between gap-4">
               <span className="text-slate-300">Digital Signature:</span>
               <span className={`font-bold ${sigPreview ? 'text-emerald-400' : 'text-amber-300'}`}>
-                {sigPreview ? '✓ Verified' : 'Pending Signature'}
+                {sigPreview ? 'Verified' : 'Pending Signature'}
               </span>
             </div>
             <div className="flex items-center justify-between gap-4 pt-1 border-t border-white/10">

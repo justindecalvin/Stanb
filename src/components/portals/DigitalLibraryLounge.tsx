@@ -8,7 +8,6 @@ import {
   Eye, 
   X, 
   CheckCircle2, 
-  Sparkles, 
   Headphones, 
   Clock, 
   Star,

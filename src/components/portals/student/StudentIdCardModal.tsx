@@ -11,7 +11,8 @@ import {
   Calendar,
   Phone,
   Mail,
-  UserCheck
+  UserCheck,
+  X
 } from '../../RealIcons';
 
 export const StudentIdCardModal: React.FC<{ isOpen: boolean; onClose: () => void }> = ({ isOpen, onClose }) => {
@@ -48,9 +49,10 @@ export const StudentIdCardModal: React.FC<{ isOpen: boolean; onClose: () => void
 
           <button
             onClick={onClose}
-            className="w-8 h-8 rounded-full bg-neutral-200 hover:bg-neutral-300 text-neutral-700 flex items-center justify-center font-bold text-sm transition cursor-pointer"
+            className="w-8 h-8 rounded-full bg-neutral-200 hover:bg-neutral-300 text-neutral-700 flex items-center justify-center transition cursor-pointer"
+            aria-label="Close"
           >
-            ✕
+            <X className="w-4 h-4" />
           </button>
         </div>
 

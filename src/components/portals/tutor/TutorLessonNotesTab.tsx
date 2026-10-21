@@ -18,8 +18,9 @@ import {
   Search, 
   Check, 
   AlertTriangle,
-  Bot,
-  Sparkles,
+  Zap,
+  Lightbulb,
+  GraduationCap,
   RefreshCw
 } from '../../RealIcons';
 
@@ -361,7 +362,7 @@ export const TutorLessonNotesTab: React.FC = () => {
                 className="px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-indigo-600 via-indigo-700 to-blue-700 hover:from-indigo-500 hover:to-blue-600 text-white font-black text-xs flex items-center gap-2 shadow-sm transition active:scale-95 cursor-pointer ring-1 ring-amber-400/40"
                 title="Use Calvin AI grounded on Scheme of Work to generate comprehensive lesson note"
               >
-                <Sparkles className="w-3.5 h-3.5 text-amber-300 animate-pulse" />
+                <Zap className="w-3.5 h-3.5 text-amber-300" />
                 <span>Draft with Calvin AI</span>
                 {activeGroundedScheme && (
                   <span className="px-1.5 py-0.2 rounded text-[9px] bg-white/20 text-amber-200 uppercase font-black">
@@ -830,7 +831,7 @@ export const TutorLessonNotesTab: React.FC = () => {
             <div className="bg-gradient-to-r from-indigo-950 via-slate-900 to-blue-950 text-white p-6 flex items-center justify-between">
               <div className="flex items-center gap-3">
                 <div className="w-11 h-11 rounded-2xl bg-indigo-600 text-white flex items-center justify-center font-black shadow-md border border-indigo-400/30">
-                  <Bot className="w-6 h-6 text-amber-300" />
+                  <GraduationCap className="w-6 h-6 text-amber-300" />
                 </div>
                 <div>
                   <div className="flex items-center gap-2">
@@ -861,7 +862,7 @@ export const TutorLessonNotesTab: React.FC = () => {
                   ? 'bg-indigo-50 border-indigo-200 text-indigo-950'
                   : 'bg-amber-50 border-amber-200 text-amber-950'
               }`}>
-                <Sparkles className={`w-5 h-5 shrink-0 mt-0.5 ${activeGroundedScheme ? 'text-indigo-600' : 'text-amber-600'}`} />
+                <Lightbulb className={`w-5 h-5 shrink-0 mt-0.5 ${activeGroundedScheme ? 'text-indigo-600' : 'text-amber-600'}`} />
                 <div className="space-y-1">
                   <div className="font-black text-sm flex items-center gap-2">
                     <span>
@@ -1013,7 +1014,7 @@ export const TutorLessonNotesTab: React.FC = () => {
                     </>
                   ) : (
                     <>
-                      <Sparkles className="w-4 h-4 text-amber-300" />
+                      <Zap className="w-4 h-4 text-amber-300" />
                       <span>Generate Lesson Note</span>
                     </>
                   )}

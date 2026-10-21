@@ -198,33 +198,33 @@ export const SchoolNewsBlogSection: React.FC<SchoolNewsBlogSectionProps> = ({ on
   };
 
   return (
-    <section id="news-blog" className="py-16 sm:py-24 bg-[#FCFBF8] border-b border-[#EAE2CE] overflow-hidden">
+    <section id="news-blog" className="py-12 sm:py-16 lg:py-20 bg-[#FCFBF8] border-b border-[#EAE2CE] overflow-hidden font-['Nunito',sans-serif]">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         
         {/* Editorial Top Bar */}
-        <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 pb-8 border-b border-stone-200">
-          <div className="space-y-3 max-w-3xl">
+        <div className="flex flex-col md:flex-row md:items-end justify-between gap-5 sm:gap-6 pb-6 sm:pb-8 border-b border-stone-200">
+          <div className="space-y-2.5 sm:space-y-3 max-w-3xl">
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-red-100 text-red-900 text-xs font-black uppercase tracking-wider">
               <Newspaper className="w-3.5 h-3.5 text-red-700" />
               <span>The Stanbax Gazette • Official Campus Dispatch</span>
             </div>
 
-            <h2 className="text-2xl sm:text-4xl lg:text-5xl font-black text-stone-900 tracking-tight leading-tight">
+            <h2 className="text-2xl sm:text-3xl lg:text-4xl font-black text-stone-900 tracking-tight leading-tight">
               School News & Journalistic Blog
             </h2>
 
-            <p className="text-stone-600 text-sm sm:text-base leading-relaxed">
+            <p className="text-stone-600 text-xs sm:text-sm lg:text-base leading-relaxed">
               Curated by the appointed <strong>Press Club President</strong> and nominated student editors. Live reports covering STEM breakthroughs, academic distinctions, inter-house athletics, and institutional bulletins.
             </p>
           </div>
 
           {/* Action buttons */}
-          <div className="flex items-center gap-2.5 flex-wrap shrink-0">
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5 shrink-0">
             <button
               type="button"
               onClick={handleFetchExternalNews}
               disabled={isFetchingApi}
-              className="px-3.5 py-2 rounded-xl bg-white hover:bg-stone-50 border border-stone-200 text-stone-700 text-xs font-bold transition flex items-center gap-2 cursor-pointer shadow-2xs disabled:opacity-50"
+              className="w-full sm:w-auto min-h-[44px] px-4 py-2.5 rounded-xl bg-white hover:bg-stone-50 border border-stone-200 text-stone-700 text-xs font-bold transition flex items-center justify-center gap-2 cursor-pointer shadow-2xs active:scale-95 disabled:opacity-50"
               title="Fetch recent updates from external education feed"
             >
               <RefreshCw className={`w-3.5 h-3.5 text-stone-500 ${isFetchingApi ? 'animate-spin' : ''}`} />
@@ -245,7 +245,7 @@ export const SchoolNewsBlogSection: React.FC<SchoolNewsBlogSectionProps> = ({ on
                 setFormAuthorRole('Press Club President');
                 setShowEditorialModal(true);
               }}
-              className="px-4 py-2 rounded-xl bg-stone-900 hover:bg-stone-800 text-white text-xs font-black transition flex items-center gap-2 cursor-pointer shadow-sm active:scale-95"
+              className="w-full sm:w-auto min-h-[44px] px-4 py-2.5 rounded-xl bg-stone-900 hover:bg-stone-800 text-white text-xs font-black transition flex items-center justify-center gap-2 cursor-pointer shadow-sm active:scale-95"
             >
               <Edit3 className="w-3.5 h-3.5 text-amber-400" />
               <span>Press Room & Editorial Desk</span>
@@ -293,14 +293,14 @@ export const SchoolNewsBlogSection: React.FC<SchoolNewsBlogSectionProps> = ({ on
         {/* Category Filters and Search Input */}
         <div className="space-y-4 mb-8">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-            {/* Filter Pills */}
-            <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-none text-xs font-bold">
+            {/* Filter Pills with touch momentum scroll and 44px touch targets */}
+            <div className="-mx-4 px-4 sm:mx-0 sm:px-0 flex items-center gap-2 overflow-x-auto pb-2.5 pt-1 scrollbar-none snap-x touch-pan-x text-xs font-bold">
               {CATEGORIES.map(cat => (
                 <button
                   key={cat}
                   type="button"
                   onClick={() => setActiveCategory(cat)}
-                  className={`px-3.5 py-1.5 rounded-full whitespace-nowrap transition cursor-pointer ${
+                  className={`min-h-[44px] px-4 py-2 rounded-full whitespace-nowrap transition-all cursor-pointer active:scale-95 shrink-0 snap-start flex items-center justify-center ${
                     activeCategory === cat
                       ? 'bg-red-700 text-white shadow-xs font-black'
                       : 'bg-stone-100 hover:bg-stone-200 text-stone-700'
@@ -311,57 +311,82 @@ export const SchoolNewsBlogSection: React.FC<SchoolNewsBlogSectionProps> = ({ on
               ))}
             </div>
 
-            {/* Keyword Search */}
-            <div className="relative w-full sm:w-64 shrink-0">
-              <Search className="w-3.5 h-3.5 text-stone-400 absolute left-3 top-1/2 -translate-y-1/2" />
+            {/* Keyword Search - Touch Friendly 44px Height & Clear Button */}
+            <div className="relative w-full sm:w-72 shrink-0">
+              <Search className="w-4 h-4 text-stone-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
               <input
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="Search articles by topic..."
-                className="w-full pl-9 pr-3 py-1.5 rounded-full bg-white border border-stone-200 text-xs focus:outline-none focus:ring-2 focus:ring-red-600"
+                className="w-full h-11 min-h-[44px] pl-10 pr-10 py-2.5 rounded-full bg-white border border-stone-200 text-sm placeholder:text-stone-400 focus:outline-none focus:ring-2 focus:ring-red-600 shadow-2xs"
               />
+              {searchQuery && (
+                <button
+                  type="button"
+                  onClick={() => setSearchQuery('')}
+                  className="w-11 h-11 min-w-[44px] min-h-[44px] flex items-center justify-center absolute right-0 top-0 text-stone-400 hover:text-stone-700 active:scale-95 cursor-pointer"
+                  aria-label="Clear search"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              )}
             </div>
           </div>
         </div>
 
         {/* No Articles Found State */}
         {filteredArticles.length === 0 ? (
-          <div className="p-12 text-center bg-white rounded-3xl border border-stone-200 space-y-3">
+          <div className="p-10 sm:p-12 text-center bg-white rounded-3xl border border-stone-200 space-y-3">
             <div className="w-12 h-12 rounded-2xl bg-stone-100 text-stone-400 flex items-center justify-center mx-auto">
               <BookOpen className="w-6 h-6" />
             </div>
             <h4 className="font-black text-stone-800 text-base">No articles found in this category</h4>
-            <p className="text-stone-500 text-xs max-w-sm mx-auto">
+            <p className="text-stone-500 text-xs max-w-sm mx-auto leading-relaxed">
               Try selecting a different category or clear your search term to view published articles.
             </p>
           </div>
         ) : (
-          <div className="space-y-8">
+          <div className="space-y-6 sm:space-y-8">
             
-            {/* Featured Headline Article */}
+            {/* Featured Headline Article - Responsive Touch Card */}
             {featuredArticle && (
               <div 
+                role="button"
+                tabIndex={0}
                 onClick={() => setSelectedArticle(featuredArticle)}
-                className="group bg-white rounded-3xl border border-stone-200 overflow-hidden shadow-xs hover:shadow-md transition-all cursor-pointer grid grid-cols-1 lg:grid-cols-12"
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    setSelectedArticle(featuredArticle);
+                  }
+                }}
+                className="group bg-white rounded-3xl border border-stone-200 hover:border-red-300 overflow-hidden shadow-xs hover:shadow-lg active:scale-[0.98] transition-all cursor-pointer grid grid-cols-1 lg:grid-cols-12 focus-visible:outline-2 focus-visible:outline-red-600 touch-manipulation select-none"
+                aria-label={`Read featured report: ${featuredArticle.title}`}
               >
                 {/* Image side */}
-                <div className="lg:col-span-7 relative h-64 sm:h-80 lg:h-full overflow-hidden bg-stone-900">
+                <div className="lg:col-span-7 relative h-56 sm:h-72 lg:h-full min-h-[220px] overflow-hidden bg-stone-900">
                   <img
                     src={featuredArticle.coverImage}
                     alt={featuredArticle.title}
                     className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                   />
-                  <div className="absolute top-4 left-4">
-                    <span className="px-3 py-1 rounded-full text-xs font-black uppercase tracking-wider bg-red-600 text-white shadow-md">
+                  <div className="absolute top-3 sm:top-4 left-3 sm:left-4">
+                    <span className="px-3 py-1 rounded-full text-[11px] sm:text-xs font-black uppercase tracking-wider bg-red-600 text-white shadow-md">
                       Featured Report • {featuredArticle.category}
                     </span>
+                  </div>
+
+                  {/* Mobile Tap Cue */}
+                  <div className="absolute bottom-3 right-3 sm:hidden px-2.5 py-1 rounded-full bg-stone-950/85 text-amber-300 text-[11px] font-bold backdrop-blur-xs flex items-center gap-1.5 shadow-md border border-amber-400/30">
+                    <BookOpen className="w-3.5 h-3.5 text-amber-400" />
+                    <span>Tap to Read</span>
                   </div>
                 </div>
 
                 {/* Content side */}
-                <div className="lg:col-span-5 p-6 sm:p-8 flex flex-col justify-between space-y-4">
-                  <div className="space-y-3">
+                <div className="lg:col-span-5 p-4 sm:p-7 lg:p-8 flex flex-col justify-between space-y-4">
+                  <div className="space-y-2.5 sm:space-y-3">
                     <div className="flex items-center gap-2 text-xs text-stone-500 font-medium">
                       <span>{new Date(featuredArticle.publishedAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}</span>
                       <span>•</span>
@@ -371,7 +396,7 @@ export const SchoolNewsBlogSection: React.FC<SchoolNewsBlogSectionProps> = ({ on
                       </span>
                     </div>
 
-                    <h3 className="text-xl sm:text-2xl font-black text-stone-900 leading-snug group-hover:text-red-700 transition-colors">
+                    <h3 className="text-lg sm:text-2xl font-black text-stone-900 leading-snug group-hover:text-red-700 transition-colors">
                       {featuredArticle.title}
                     </h3>
 
@@ -380,14 +405,14 @@ export const SchoolNewsBlogSection: React.FC<SchoolNewsBlogSectionProps> = ({ on
                     </p>
                   </div>
 
-                  {/* Author & Footer */}
-                  <div className="pt-4 border-t border-stone-100 flex items-center justify-between gap-4">
+                  {/* Author & Footer Controls with Generous Touch-Friendly Targets */}
+                  <div className="pt-4 border-t border-stone-100 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                     <div className="flex items-center gap-2.5 min-w-0">
-                      <div className="w-8 h-8 rounded-full bg-amber-100 text-amber-900 font-black text-xs flex items-center justify-center shrink-0">
+                      <div className="w-9 h-9 rounded-full bg-amber-100 text-amber-900 font-black text-xs flex items-center justify-center shrink-0 shadow-2xs">
                         {featuredArticle.author.name.charAt(0)}
                       </div>
                       <div className="min-w-0">
-                        <span className="text-xs font-extrabold text-stone-900 truncate block">
+                        <span className="text-xs font-black text-stone-900 truncate block">
                           {featuredArticle.author.name}
                         </span>
                         <span className="text-[10px] text-amber-700 font-bold truncate block">
@@ -396,42 +421,59 @@ export const SchoolNewsBlogSection: React.FC<SchoolNewsBlogSectionProps> = ({ on
                       </div>
                     </div>
 
-                    <div className="flex items-center gap-3 shrink-0 text-xs text-stone-500 font-bold">
+                    <div className="w-full sm:w-auto grid grid-cols-2 sm:flex items-center gap-2.5">
                       <button
                         type="button"
                         onClick={(e) => {
                           e.stopPropagation();
                           likeNewsArticle(featuredArticle.id);
                         }}
-                        className="flex items-center gap-1 text-rose-600 hover:text-rose-700 transition cursor-pointer"
+                        className="w-full sm:w-auto min-h-[46px] min-w-[46px] px-3.5 py-2.5 rounded-xl bg-rose-50 hover:bg-rose-100 active:scale-95 text-rose-700 border border-rose-200 flex items-center justify-center gap-1.5 transition text-xs font-black cursor-pointer shadow-2xs"
                         title="Applaud article"
+                        aria-label={`Like article, current count: ${featuredArticle.likesCount || 0}`}
                       >
                         <Heart className="w-4 h-4 fill-rose-600" />
                         <span>{featuredArticle.likesCount || 0}</span>
                       </button>
 
-                      <span className="inline-flex items-center gap-1 text-stone-900 group-hover:translate-x-1 transition-transform font-black">
-                        <span>Read</span>
-                        <ArrowRight className="w-3.5 h-3.5" />
-                      </span>
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setSelectedArticle(featuredArticle);
+                        }}
+                        className="w-full sm:w-auto min-h-[46px] px-4 py-2.5 rounded-xl bg-stone-900 hover:bg-stone-800 active:scale-95 text-white font-black text-xs flex items-center justify-center gap-1.5 transition cursor-pointer shadow-xs"
+                      >
+                        <span>Read Report</span>
+                        <ArrowRight className="w-3.5 h-3.5 text-amber-400" />
+                      </button>
                     </div>
                   </div>
                 </div>
               </div>
             )}
 
-            {/* Regular Articles Grid */}
+            {/* Regular Articles Grid: 1 col mobile, 2 col tablet (640px+), 3 col desktop (1024px+) */}
             {regularArticles.length > 0 && (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5 sm:gap-6">
                 {regularArticles.map(article => (
                   <article
                     key={article.id}
+                    role="button"
+                    tabIndex={0}
                     onClick={() => setSelectedArticle(article)}
-                    className="group bg-white rounded-3xl border border-stone-200 overflow-hidden shadow-2xs hover:shadow-md transition-all flex flex-col justify-between cursor-pointer"
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        setSelectedArticle(article);
+                      }
+                    }}
+                    className="group bg-white rounded-3xl border border-stone-200 hover:border-red-300 overflow-hidden shadow-2xs hover:shadow-lg active:scale-[0.98] transition-all flex flex-col justify-between cursor-pointer focus-visible:outline-2 focus-visible:outline-red-600 touch-manipulation select-none"
+                    aria-label={`Read article: ${article.title}`}
                   >
                     <div>
-                      {/* Image */}
-                      <div className="relative h-48 overflow-hidden bg-stone-900">
+                      {/* Image Container with Responsive Aspect Ratio */}
+                      <div className="relative h-48 sm:h-52 overflow-hidden bg-stone-900">
                         <img
                           src={article.coverImage}
                           alt={article.title}
@@ -442,10 +484,16 @@ export const SchoolNewsBlogSection: React.FC<SchoolNewsBlogSectionProps> = ({ on
                             {article.category}
                           </span>
                         </div>
+
+                        {/* Mobile Tap Cue Badge */}
+                        <div className="absolute bottom-3 right-3 sm:hidden px-2.5 py-0.5 rounded-full bg-stone-950/85 text-amber-300 text-[10px] font-bold backdrop-blur-xs flex items-center gap-1 border border-amber-400/30">
+                          <BookOpen className="w-3 h-3 text-amber-400" />
+                          <span>Tap to Read</span>
+                        </div>
                       </div>
 
                       {/* Content */}
-                      <div className="p-5 space-y-2.5">
+                      <div className="p-4 sm:p-5 space-y-2">
                         <div className="flex items-center gap-2 text-[11px] text-stone-500 font-medium">
                           <span>{new Date(article.publishedAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}</span>
                           <span>•</span>
@@ -462,9 +510,9 @@ export const SchoolNewsBlogSection: React.FC<SchoolNewsBlogSectionProps> = ({ on
                       </div>
                     </div>
 
-                    {/* Footer */}
-                    <div className="p-5 pt-0 border-t border-stone-100 mt-2 flex items-center justify-between gap-3">
-                      <div className="min-w-0">
+                    {/* Touch-Friendly Card Footer */}
+                    <div className="p-4 sm:p-5 pt-0 border-t border-stone-100 mt-2 flex items-center justify-between gap-2.5">
+                      <div className="min-w-0 flex-1">
                         <span className="text-xs font-bold text-stone-800 truncate block">
                           {article.author.name}
                         </span>
@@ -473,23 +521,32 @@ export const SchoolNewsBlogSection: React.FC<SchoolNewsBlogSectionProps> = ({ on
                         </span>
                       </div>
 
-                      <div className="flex items-center gap-3 shrink-0 text-xs">
+                      <div className="flex items-center gap-2 shrink-0">
                         <button
                           type="button"
                           onClick={(e) => {
                             e.stopPropagation();
                             likeNewsArticle(article.id);
                           }}
-                          className="flex items-center gap-1 text-stone-500 hover:text-rose-600 transition cursor-pointer"
+                          className="min-h-[44px] min-w-[44px] px-3.5 py-2.5 rounded-xl bg-stone-100 hover:bg-rose-50 hover:text-rose-600 active:scale-95 text-stone-600 transition flex items-center justify-center gap-1.5 cursor-pointer text-xs font-bold"
                           title="Like article"
+                          aria-label={`Like article, current count: ${article.likesCount || 0}`}
                         >
-                          <Heart className="w-3.5 h-3.5" />
+                          <Heart className="w-3.5 h-3.5 fill-current" />
                           <span>{article.likesCount || 0}</span>
                         </button>
 
-                        <span className="text-red-700 font-bold group-hover:translate-x-0.5 transition-transform">
-                          →
-                        </span>
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setSelectedArticle(article);
+                          }}
+                          className="min-h-[44px] px-4 py-2.5 rounded-xl bg-stone-900 sm:bg-stone-100 hover:bg-stone-200 text-white sm:text-stone-900 active:scale-95 font-black text-xs flex items-center justify-center gap-1.5 transition cursor-pointer shadow-2xs"
+                        >
+                          <span>Read</span>
+                          <ArrowRight className="w-3.5 h-3.5 text-amber-400 sm:text-red-700" />
+                        </button>
                       </div>
                     </div>
                   </article>
@@ -503,33 +560,41 @@ export const SchoolNewsBlogSection: React.FC<SchoolNewsBlogSectionProps> = ({ on
       </div>
 
       {/* ========================================================================= */}
-      {/* MODAL 1: FULL ARTICLE READER MODAL                                        */}
+      {/* MODAL 1: FULL ARTICLE READER MODAL (RESPONSIVE BOTTOM-SHEET ON MOBILE)    */}
       {/* ========================================================================= */}
       {selectedArticle && (
         <div 
-          className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-3 sm:p-6 overflow-y-auto"
+          className="fixed inset-0 z-50 bg-black/80 backdrop-blur-xs flex items-end sm:items-center justify-center p-0 sm:p-4 md:p-6 overflow-y-auto animate-in fade-in duration-150"
           onClick={() => setSelectedArticle(null)}
         >
           <div 
-            className="bg-white rounded-3xl w-full max-w-3xl overflow-hidden shadow-2xl border border-stone-200 my-8 animate-in zoom-in-95 duration-150"
+            className="bg-white rounded-t-[32px] sm:rounded-3xl w-full max-w-3xl overflow-hidden shadow-2xl border border-stone-200 my-0 sm:my-auto animate-in slide-in-from-bottom sm:slide-in-from-none sm:zoom-in-95 duration-200"
             onClick={(e) => e.stopPropagation()}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="reader-article-title"
           >
+            {/* Mobile Sheet Handle */}
+            <div className="sm:hidden pt-3 pb-1 flex justify-center bg-stone-50/70 border-b border-stone-100">
+              <div className="w-12 h-1.5 rounded-full bg-stone-300" />
+            </div>
+
             {/* Reader Header Bar */}
-            <div className="p-4 sm:p-6 border-b border-stone-200 flex items-center justify-between bg-stone-50/50">
-              <div className="flex items-center gap-2 flex-wrap">
-                <span className="px-3 py-1 rounded-full text-xs font-black uppercase bg-red-100 text-red-900">
+            <div className="p-3.5 sm:p-5 border-b border-stone-200 flex items-center justify-between bg-stone-50/70 gap-2">
+              <div className="flex items-center gap-2 flex-wrap min-w-0">
+                <span className="px-3 py-1 rounded-full text-xs font-black uppercase bg-red-100 text-red-900 border border-red-200">
                   {selectedArticle.category}
                 </span>
-                <span className="text-xs text-stone-500 font-medium">
-                  {new Date(selectedArticle.publishedAt).toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })}
+                <span className="text-xs text-stone-500 font-medium truncate">
+                  {new Date(selectedArticle.publishedAt).toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' })}
                 </span>
               </div>
 
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 shrink-0">
                 <button
                   type="button"
                   onClick={() => handleShare(selectedArticle)}
-                  className="p-2 rounded-xl text-stone-500 hover:bg-stone-200 transition cursor-pointer flex items-center gap-1 text-xs font-bold"
+                  className="min-h-[44px] px-3.5 py-2 rounded-xl text-stone-600 hover:bg-stone-200 active:scale-95 transition cursor-pointer flex items-center gap-1.5 text-xs font-bold"
                   title="Share link"
                 >
                   <Share2 className="w-4 h-4" />
@@ -539,7 +604,8 @@ export const SchoolNewsBlogSection: React.FC<SchoolNewsBlogSectionProps> = ({ on
                 <button
                   type="button"
                   onClick={() => setSelectedArticle(null)}
-                  className="p-2 rounded-xl text-stone-500 hover:bg-stone-200 transition cursor-pointer"
+                  className="w-11 h-11 min-w-[44px] min-h-[44px] rounded-full bg-stone-200 hover:bg-stone-300 active:scale-95 text-stone-700 flex items-center justify-center transition cursor-pointer"
+                  aria-label="Close reader"
                 >
                   <X className="w-5 h-5" />
                 </button>
@@ -547,15 +613,15 @@ export const SchoolNewsBlogSection: React.FC<SchoolNewsBlogSectionProps> = ({ on
             </div>
 
             {/* Reader Body */}
-            <div className="p-6 sm:p-10 space-y-6 max-h-[75vh] overflow-y-auto">
-              <h2 className="text-2xl sm:text-3xl lg:text-4xl font-black text-stone-900 leading-tight">
+            <div className="p-4 sm:p-7 lg:p-8 space-y-5 max-h-[70dvh] sm:max-h-[72vh] overflow-y-auto overscroll-contain">
+              <h2 id="reader-article-title" className="text-xl sm:text-2xl lg:text-3xl font-black text-stone-900 leading-snug">
                 {selectedArticle.title}
               </h2>
 
               {/* Author Masthead Card */}
-              <div className="p-4 rounded-2xl bg-amber-50/70 border border-amber-200 flex items-center justify-between gap-4">
+              <div className="p-3.5 sm:p-4 rounded-2xl bg-amber-50/70 border border-amber-200 flex items-center justify-between gap-4">
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-full bg-amber-200 text-amber-950 font-black text-sm flex items-center justify-center shadow-xs">
+                  <div className="w-10 h-10 rounded-full bg-amber-200 text-amber-950 font-black text-sm flex items-center justify-center shadow-xs shrink-0">
                     {selectedArticle.author.name.charAt(0)}
                   </div>
                   <div>
@@ -573,7 +639,7 @@ export const SchoolNewsBlogSection: React.FC<SchoolNewsBlogSectionProps> = ({ on
               </div>
 
               {/* Cover Image */}
-              <div className="rounded-2xl overflow-hidden bg-stone-900 max-h-96">
+              <div className="rounded-2xl overflow-hidden bg-stone-900 max-h-80 sm:max-h-96">
                 <img
                   src={selectedArticle.coverImage}
                   alt={selectedArticle.title}
@@ -582,12 +648,12 @@ export const SchoolNewsBlogSection: React.FC<SchoolNewsBlogSectionProps> = ({ on
               </div>
 
               {/* Excerpt Lead */}
-              <p className="text-base sm:text-lg font-bold text-stone-700 leading-relaxed italic border-l-4 border-red-600 pl-4">
+              <p className="text-sm sm:text-base font-bold text-stone-700 leading-relaxed italic border-l-4 border-red-600 pl-3.5">
                 "{selectedArticle.excerpt}"
               </p>
 
               {/* Full Content */}
-              <div className="prose prose-stone max-w-none text-stone-800 text-sm sm:text-base leading-relaxed space-y-4">
+              <div className="prose prose-stone max-w-none text-stone-800 text-xs sm:text-sm sm:text-base leading-relaxed space-y-3.5">
                 {selectedArticle.content.split('\n\n').map((paragraph, idx) => (
                   <p key={idx} className="whitespace-pre-wrap">{paragraph}</p>
                 ))}
@@ -595,7 +661,7 @@ export const SchoolNewsBlogSection: React.FC<SchoolNewsBlogSectionProps> = ({ on
 
               {/* Tags */}
               {selectedArticle.tags && selectedArticle.tags.length > 0 && (
-                <div className="pt-6 border-t border-stone-200 flex items-center gap-2 flex-wrap">
+                <div className="pt-4 border-t border-stone-200 flex items-center gap-2 flex-wrap">
                   <span className="text-xs font-bold text-stone-500">Filed under:</span>
                   {selectedArticle.tags.map((t, idx) => (
                     <span key={idx} className="px-2.5 py-1 rounded-full text-xs font-semibold bg-stone-100 text-stone-700">
@@ -606,22 +672,22 @@ export const SchoolNewsBlogSection: React.FC<SchoolNewsBlogSectionProps> = ({ on
               )}
             </div>
 
-            {/* Reader Footer Bar */}
-            <div className="p-4 sm:p-6 border-t border-stone-200 bg-stone-50 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
+            {/* Reader Footer Bar - Responsive and Touch-Friendly */}
+            <div className="p-3.5 sm:p-5 border-t border-stone-200 bg-stone-50 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5">
               <button
                 type="button"
                 onClick={() => likeNewsArticle(selectedArticle.id)}
-                className="px-4 py-2.5 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-700 text-xs font-black transition flex items-center justify-center gap-2 cursor-pointer border border-rose-200"
+                className="w-full sm:w-auto min-h-[46px] px-4 py-2.5 rounded-xl bg-rose-50 hover:bg-rose-100 active:scale-95 text-rose-700 text-xs font-black transition flex items-center justify-center gap-2 cursor-pointer border border-rose-200"
               >
                 <Heart className="w-4 h-4 fill-rose-600" />
                 <span>Applaud Report ({selectedArticle.likesCount || 0})</span>
               </button>
 
-              <div className="flex items-center gap-2 justify-end">
+              <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
                 <button
                   type="button"
                   onClick={() => handleOpenEdit(selectedArticle)}
-                  className="flex-1 sm:flex-initial px-3.5 py-2.5 rounded-xl bg-stone-200 hover:bg-stone-300 text-stone-800 text-xs font-bold transition flex items-center justify-center gap-1.5 cursor-pointer"
+                  className="w-full sm:w-auto min-h-[46px] px-4 py-2.5 rounded-xl bg-stone-200 hover:bg-stone-300 active:scale-95 text-stone-800 text-xs font-bold transition flex items-center justify-center gap-1.5 cursor-pointer"
                 >
                   <Edit3 className="w-3.5 h-3.5" />
                   <span>Edit in Press Room</span>
@@ -630,7 +696,7 @@ export const SchoolNewsBlogSection: React.FC<SchoolNewsBlogSectionProps> = ({ on
                 <button
                   type="button"
                   onClick={() => setSelectedArticle(null)}
-                  className="px-4 py-2.5 rounded-xl bg-stone-900 text-white text-xs font-black cursor-pointer text-center"
+                  className="w-full sm:w-auto min-h-[46px] px-5 py-2.5 rounded-xl bg-stone-900 hover:bg-stone-800 active:scale-95 text-white text-xs font-black cursor-pointer text-center"
                 >
                   Close Reader
                 </button>
@@ -642,20 +708,34 @@ export const SchoolNewsBlogSection: React.FC<SchoolNewsBlogSectionProps> = ({ on
       )}
 
       {/* ========================================================================= */}
-      {/* MODAL 2: PRESS ROOM & EDITORIAL DESK MODAL                                */}
+      {/* MODAL 2: PRESS ROOM & EDITORIAL DESK MODAL (RESPONSIVE BOTTOM-SHEET ON MOBILE) */}
       {/* ========================================================================= */}
       {showEditorialModal && (
-        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-3 sm:p-6 overflow-y-auto">
-          <div className="bg-white rounded-3xl w-full max-w-2xl overflow-hidden shadow-2xl border border-stone-200 my-8 animate-in zoom-in-95 duration-150">
+        <div 
+          className="fixed inset-0 z-50 bg-black/80 backdrop-blur-xs flex items-end sm:items-center justify-center p-0 sm:p-4 md:p-6 overflow-y-auto animate-in fade-in duration-150"
+          onClick={() => setShowEditorialModal(false)}
+        >
+          <div 
+            className="bg-white rounded-t-[32px] sm:rounded-3xl w-full max-w-2xl overflow-hidden shadow-2xl border border-stone-200 my-0 sm:my-auto animate-in slide-in-from-bottom sm:slide-in-from-none sm:zoom-in-95 duration-200"
+            onClick={(e) => e.stopPropagation()}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="editorial-modal-title"
+          >
+            {/* Mobile Sheet Handle */}
+            <div className="sm:hidden pt-3 pb-1 flex justify-center bg-stone-900 border-b border-stone-800">
+              <div className="w-12 h-1.5 rounded-full bg-stone-600" />
+            </div>
+
             {/* Header */}
-            <div className="bg-gradient-to-r from-stone-900 via-stone-950 to-red-950 p-6 text-white flex items-center justify-between">
+            <div className="bg-gradient-to-r from-stone-900 via-stone-950 to-red-950 p-4 sm:p-6 text-white flex items-center justify-between gap-3">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-2xl bg-amber-400 text-neutral-950 flex items-center justify-center font-black shadow-md">
+                <div className="w-10 h-10 rounded-2xl bg-amber-400 text-neutral-950 flex items-center justify-center font-black shadow-md shrink-0">
                   <Newspaper className="w-5 h-5" />
                 </div>
                 <div>
-                  <h4 className="font-black text-base text-white">Press Room & Editorial Desk</h4>
-                  <p className="text-xs text-stone-300">
+                  <h4 id="editorial-modal-title" className="font-black text-sm sm:text-base text-white">Press Room & Editorial Desk</h4>
+                  <p className="text-[11px] sm:text-xs text-stone-300">
                     Managed by Press Club President ({presidentStudent?.name || 'Tiwa Adeleke'}) & Nominated Editors
                   </p>
                 </div>
@@ -663,7 +743,8 @@ export const SchoolNewsBlogSection: React.FC<SchoolNewsBlogSectionProps> = ({ on
               <button
                 type="button"
                 onClick={() => setShowEditorialModal(false)}
-                className="p-1.5 rounded-xl text-stone-400 hover:text-white cursor-pointer"
+                className="w-11 h-11 min-w-[44px] min-h-[44px] rounded-full text-stone-300 hover:text-white hover:bg-white/10 active:scale-95 flex items-center justify-center transition cursor-pointer"
+                aria-label="Close editorial desk"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -678,16 +759,16 @@ export const SchoolNewsBlogSection: React.FC<SchoolNewsBlogSectionProps> = ({ on
                   <span>Press Club Leadership & Editorial Appointments</span>
                 </h5>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                   {/* Appoint Press Club President (Admin Authority) */}
                   <div>
-                    <label className="block text-xs font-bold text-stone-700 mb-1">
+                    <label className="block text-xs font-bold text-stone-700 mb-1.5">
                       Press Club President (Admin Appointment)
                     </label>
                     <select
                       value={pressClubPresidentStudentId || ''}
                       onChange={(e) => assignPressClubPresident(e.target.value || undefined)}
-                      className="w-full px-3 py-2 rounded-xl border border-stone-300 text-xs font-semibold bg-white"
+                      className="w-full h-11 min-h-[44px] px-3.5 py-2 rounded-xl border border-stone-300 text-sm font-semibold bg-white focus:outline-none focus:ring-2 focus:ring-red-600"
                     >
                       {students.map(s => (
                         <option key={s.id} value={s.id}>{s.name} ({s.grade})</option>
@@ -697,7 +778,7 @@ export const SchoolNewsBlogSection: React.FC<SchoolNewsBlogSectionProps> = ({ on
 
                   {/* Nominate Editors */}
                   <div>
-                    <label className="block text-xs font-bold text-stone-700 mb-1">
+                    <label className="block text-xs font-bold text-stone-700 mb-1.5">
                       Nominate New Club Editor (President Privileges)
                     </label>
                     <select
@@ -707,7 +788,7 @@ export const SchoolNewsBlogSection: React.FC<SchoolNewsBlogSectionProps> = ({ on
                           e.target.value = '';
                         }
                       }}
-                      className="w-full px-3 py-2 rounded-xl border border-stone-300 text-xs font-semibold bg-white"
+                      className="w-full h-11 min-h-[44px] px-3.5 py-2 rounded-xl border border-stone-300 text-sm font-semibold bg-white focus:outline-none focus:ring-2 focus:ring-red-600"
                     >
                       <option value="">+ Nominate Student Editor...</option>
                       {students
@@ -722,22 +803,25 @@ export const SchoolNewsBlogSection: React.FC<SchoolNewsBlogSectionProps> = ({ on
                 {/* Nominated Editors List */}
                 <div className="flex items-center gap-2 flex-wrap pt-2">
                   <span className="text-[11px] font-bold text-stone-500">Active Editorial Board:</span>
-                  <span className="px-2.5 py-0.5 rounded-full text-xs font-black bg-amber-100 text-amber-900 border border-amber-300">
-                    👑 {presidentStudent?.name || 'Tiwa Adeleke'} (President)
+                  <span className="min-h-[36px] px-3 py-1 rounded-full text-xs font-black bg-amber-100 text-amber-900 border border-amber-300 flex items-center gap-1.5">
+                    <Crown className="w-3.5 h-3.5 text-amber-600 shrink-0" />
+                    <span>{presidentStudent?.name || 'Tiwa Adeleke'} (President)</span>
                   </span>
                   {editorStudents.map(e => (
                     <span 
                       key={e.id}
-                      className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-stone-200 text-stone-800 flex items-center gap-1.5"
+                      className="min-h-[36px] px-3 py-1 rounded-full text-xs font-bold bg-stone-200 text-stone-800 flex items-center gap-1.5"
                     >
-                      <span>✍️ {e.name}</span>
+                      <Edit3 className="w-3 h-3 text-stone-600 shrink-0" />
+                      <span>{e.name}</span>
                       <button
                         type="button"
                         onClick={() => removePressClubEditor(e.id)}
-                        className="text-stone-400 hover:text-red-600 font-black cursor-pointer"
+                        className="w-7 h-7 min-w-[28px] min-h-[28px] rounded-full hover:bg-stone-300 active:scale-95 text-stone-500 hover:text-red-600 font-black cursor-pointer flex items-center justify-center ml-0.5 touch-manipulation"
                         title="Remove editor"
+                        aria-label={`Remove editor ${e.name}`}
                       >
-                        ×
+                        <X className="w-3.5 h-3.5" />
                       </button>
                     </span>
                   ))}
@@ -754,7 +838,7 @@ export const SchoolNewsBlogSection: React.FC<SchoolNewsBlogSectionProps> = ({ on
                     <button
                       type="button"
                       onClick={() => setEditingArticleId(null)}
-                      className="text-xs text-red-600 font-bold hover:underline"
+                      className="min-h-[44px] px-3 py-2 text-xs text-red-600 font-bold hover:underline flex items-center cursor-pointer"
                     >
                       Cancel editing
                     </button>
@@ -762,24 +846,24 @@ export const SchoolNewsBlogSection: React.FC<SchoolNewsBlogSectionProps> = ({ on
                 </div>
 
                 <div>
-                  <label className="block text-xs font-bold text-stone-700 mb-1">Article Headline *</label>
+                  <label className="block text-xs font-bold text-stone-700 mb-1.5">Article Headline *</label>
                   <input
                     type="text"
                     required
                     value={formTitle}
                     onChange={(e) => setFormTitle(e.target.value)}
                     placeholder="e.g. Stanbax Scholars Triumph at National Mathematics Olympiad"
-                    className="w-full px-3 py-2 rounded-xl border border-stone-300 text-xs sm:text-sm font-bold focus:outline-none focus:ring-2 focus:ring-red-600"
+                    className="w-full h-11 min-h-[44px] px-3.5 py-2 rounded-xl border border-stone-300 text-sm font-bold focus:outline-none focus:ring-2 focus:ring-red-600"
                   />
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                   <div>
-                    <label className="block text-xs font-bold text-stone-700 mb-1">Desk / Category *</label>
+                    <label className="block text-xs font-bold text-stone-700 mb-1.5">Desk / Category *</label>
                     <select
                       value={formCategory}
                       onChange={(e) => setFormCategory(e.target.value as any)}
-                      className="w-full px-3 py-2 rounded-xl border border-stone-300 text-xs font-semibold bg-white"
+                      className="w-full h-11 min-h-[44px] px-3.5 py-2 rounded-xl border border-stone-300 text-sm font-semibold bg-white focus:outline-none focus:ring-2 focus:ring-red-600"
                     >
                       {CATEGORIES.filter(c => c !== 'All').map(c => (
                         <option key={c} value={c}>{c}</option>
@@ -788,19 +872,19 @@ export const SchoolNewsBlogSection: React.FC<SchoolNewsBlogSectionProps> = ({ on
                   </div>
 
                   <div>
-                    <label className="block text-xs font-bold text-stone-700 mb-1">Author Byline & Role</label>
-                    <div className="grid grid-cols-2 gap-2">
+                    <label className="block text-xs font-bold text-stone-700 mb-1.5">Author Byline & Role</label>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                       <input
                         type="text"
                         value={formAuthorName}
                         onChange={(e) => setFormAuthorName(e.target.value)}
                         placeholder="Author Name"
-                        className="w-full px-2.5 py-2 rounded-xl border border-stone-300 text-xs"
+                        className="w-full h-11 min-h-[44px] px-3 py-2 rounded-xl border border-stone-300 text-sm focus:outline-none focus:ring-2 focus:ring-red-600"
                       />
                       <select
                         value={formAuthorRole}
                         onChange={(e) => setFormAuthorRole(e.target.value as any)}
-                        className="w-full px-2 py-2 rounded-xl border border-stone-300 text-xs font-semibold bg-white"
+                        className="w-full h-11 min-h-[44px] px-2.5 py-2 rounded-xl border border-stone-300 text-sm font-semibold bg-white focus:outline-none focus:ring-2 focus:ring-red-600"
                       >
                         <option value="Press Club President">Press President</option>
                         <option value="Press Club Editor">Press Editor</option>
@@ -812,76 +896,76 @@ export const SchoolNewsBlogSection: React.FC<SchoolNewsBlogSectionProps> = ({ on
                 </div>
 
                 <div>
-                  <label className="block text-xs font-bold text-stone-700 mb-1">Cover Image URL</label>
+                  <label className="block text-xs font-bold text-stone-700 mb-1.5">Cover Image URL</label>
                   <input
                     type="url"
                     value={formCoverImage}
                     onChange={(e) => setFormCoverImage(e.target.value)}
                     placeholder="https://images.unsplash.com/..."
-                    className="w-full px-3 py-2 rounded-xl border border-stone-300 text-xs"
+                    className="w-full h-11 min-h-[44px] px-3.5 py-2 rounded-xl border border-stone-300 text-sm focus:outline-none focus:ring-2 focus:ring-red-600"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-xs font-bold text-stone-700 mb-1">Executive Summary / Excerpt</label>
+                  <label className="block text-xs font-bold text-stone-700 mb-1.5">Executive Summary / Excerpt</label>
                   <textarea
                     rows={2}
                     value={formExcerpt}
                     onChange={(e) => setFormExcerpt(e.target.value)}
                     placeholder="Brief 1-2 sentence lead paragraph..."
-                    className="w-full p-3 rounded-xl border border-stone-300 text-xs"
+                    className="w-full p-3.5 rounded-xl border border-stone-300 text-sm focus:outline-none focus:ring-2 focus:ring-red-600"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-xs font-bold text-stone-700 mb-1">Full Article Report Body *</label>
+                  <label className="block text-xs font-bold text-stone-700 mb-1.5">Full Article Report Body *</label>
                   <textarea
                     rows={6}
                     required
                     value={formContent}
                     onChange={(e) => setFormContent(e.target.value)}
                     placeholder="Full article journalistic narrative. Separate paragraphs with double enter..."
-                    className="w-full p-3 rounded-xl border border-stone-300 text-xs leading-relaxed"
+                    className="w-full p-3.5 rounded-xl border border-stone-300 text-sm leading-relaxed focus:outline-none focus:ring-2 focus:ring-red-600"
                   />
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 items-center">
                   <div>
-                    <label className="block text-xs font-bold text-stone-700 mb-1">Tags (Comma-separated)</label>
+                    <label className="block text-xs font-bold text-stone-700 mb-1.5">Tags (Comma-separated)</label>
                     <input
                       type="text"
                       value={formTags}
                       onChange={(e) => setFormTags(e.target.value)}
                       placeholder="e.g. Science, WAEC, Championship"
-                      className="w-full px-3 py-2 rounded-xl border border-stone-300 text-xs"
+                      className="w-full h-11 min-h-[44px] px-3.5 py-2 rounded-xl border border-stone-300 text-sm focus:outline-none focus:ring-2 focus:ring-red-600"
                     />
                   </div>
 
-                  <div className="pt-4 flex items-center gap-2">
+                  <div className="pt-2 sm:pt-4 flex items-center gap-2.5">
                     <input
                       type="checkbox"
                       id="chk-featured"
                       checked={formIsFeatured}
                       onChange={(e) => setFormIsFeatured(e.target.checked)}
-                      className="rounded text-red-600 cursor-pointer"
+                      className="w-5 h-5 rounded text-red-600 cursor-pointer"
                     />
-                    <label htmlFor="chk-featured" className="text-xs font-bold text-stone-800 cursor-pointer">
+                    <label htmlFor="chk-featured" className="text-xs font-bold text-stone-800 cursor-pointer select-none">
                       Feature as Main Headline Article
                     </label>
                   </div>
                 </div>
 
-                <div className="pt-4 border-t border-stone-100 flex items-center justify-end gap-2">
+                <div className="pt-4 border-t border-stone-100 flex flex-col sm:flex-row items-stretch sm:items-center justify-end gap-2.5">
                   <button
                     type="button"
                     onClick={() => setShowEditorialModal(false)}
-                    className="px-4 py-2 rounded-xl text-xs font-bold text-stone-600 hover:bg-stone-100 cursor-pointer"
+                    className="w-full sm:w-auto min-h-[44px] px-5 py-2.5 rounded-xl text-xs font-bold text-stone-600 hover:bg-stone-100 active:scale-95 transition cursor-pointer flex items-center justify-center"
                   >
                     Cancel
                   </button>
                   <button
                     type="submit"
-                    className="px-5 py-2 rounded-xl bg-red-700 hover:bg-red-800 text-white text-xs font-black shadow-md transition cursor-pointer"
+                    className="w-full sm:w-auto min-h-[44px] px-6 py-2.5 rounded-xl bg-red-700 hover:bg-red-800 active:scale-95 text-white text-xs font-black shadow-md transition cursor-pointer flex items-center justify-center"
                   >
                     {editingArticleId ? 'Update Article' : 'Publish Article to Gazette'}
                   </button>
@@ -894,22 +978,23 @@ export const SchoolNewsBlogSection: React.FC<SchoolNewsBlogSectionProps> = ({ on
                   Published Dispatch Archive ({newsArticles.length})
                 </h5>
 
-                <div className="divide-y divide-stone-100 max-h-48 overflow-y-auto border border-stone-200 rounded-2xl bg-white">
+                <div className="divide-y divide-stone-100 max-h-56 overflow-y-auto border border-stone-200 rounded-2xl bg-white">
                   {newsArticles.map(a => (
-                    <div key={a.id} className="p-3 flex items-center justify-between gap-3 text-xs">
-                      <div className="min-w-0">
-                        <span className="font-extrabold text-stone-900 truncate block">{a.title}</span>
-                        <span className="text-[10px] text-stone-500">{a.category} • {a.author.name}</span>
+                    <div key={a.id} className="p-3 sm:p-3.5 flex items-center justify-between gap-3 text-xs">
+                      <div className="min-w-0 flex-1">
+                        <span className="font-extrabold text-stone-900 truncate block text-xs sm:text-sm">{a.title}</span>
+                        <span className="text-[10px] sm:text-xs text-stone-500">{a.category} • {a.author.name}</span>
                       </div>
 
                       <div className="flex items-center gap-2 shrink-0">
                         <button
                           type="button"
                           onClick={() => handleOpenEdit(a)}
-                          className="p-1 text-stone-500 hover:text-stone-900 cursor-pointer"
+                          className="w-11 h-11 min-w-[44px] min-h-[44px] rounded-xl bg-stone-100 hover:bg-stone-200 active:scale-95 text-stone-700 flex items-center justify-center transition cursor-pointer touch-manipulation"
                           title="Edit"
+                          aria-label={`Edit ${a.title}`}
                         >
-                          <Edit3 className="w-3.5 h-3.5" />
+                          <Edit3 className="w-4 h-4" />
                         </button>
                         <button
                           type="button"
@@ -918,10 +1003,11 @@ export const SchoolNewsBlogSection: React.FC<SchoolNewsBlogSectionProps> = ({ on
                               deleteNewsArticle(a.id);
                             }
                           }}
-                          className="p-1 text-stone-400 hover:text-red-600 cursor-pointer"
+                          className="w-11 h-11 min-w-[44px] min-h-[44px] rounded-xl bg-rose-50 hover:bg-rose-100 active:scale-95 text-rose-600 flex items-center justify-center transition cursor-pointer touch-manipulation"
                           title="Delete"
+                          aria-label={`Delete ${a.title}`}
                         >
-                          <Trash2 className="w-3.5 h-3.5" />
+                          <Trash2 className="w-4 h-4" />
                         </button>
                       </div>
                     </div>
@@ -935,7 +1021,7 @@ export const SchoolNewsBlogSection: React.FC<SchoolNewsBlogSectionProps> = ({ on
               <button
                 type="button"
                 onClick={() => setShowEditorialModal(false)}
-                className="px-5 py-2 rounded-xl bg-stone-900 text-white text-xs font-black"
+                className="w-full sm:w-auto min-h-[44px] px-6 py-2.5 rounded-xl bg-stone-900 hover:bg-stone-800 active:scale-95 text-white text-xs font-black transition cursor-pointer flex items-center justify-center"
               >
                 Close Desk
               </button>

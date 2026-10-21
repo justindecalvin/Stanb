@@ -6,7 +6,7 @@ import {
   Plus, 
   Edit3, 
   Trash2, 
-  Sparkles, 
+  Star, 
   Check, 
   X, 
   RotateCcw, 
@@ -263,7 +263,7 @@ export const AdminContributorsTab: React.FC = () => {
                     )}
                     {c.highlight && (
                       <span className="px-2 py-0.5 rounded-md bg-amber-100 text-amber-900 text-[10px] font-black uppercase flex items-center gap-1">
-                        <Sparkles className="w-2.5 h-2.5 text-amber-600" />
+                        <Star className="w-2.5 h-2.5 text-amber-600 fill-amber-500" />
                         <span>Featured</span>
                       </span>
                     )}

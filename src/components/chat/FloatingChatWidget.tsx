@@ -9,9 +9,11 @@ import {
   Users, 
   Lock, 
   Send,
-  Sparkles,
+  MessageCircle,
   ExternalLink,
-  Crown
+  Crown,
+  Award,
+  ShieldCheck
 } from '../RealIcons';
 import { SchoolLogo } from '../SchoolLogo';
 import { SchoolChatSystem } from './SchoolChatSystem';
@@ -85,7 +87,7 @@ export const FloatingChatWidget: React.FC = () => {
         id: student.id,
         name: student.name,
         subtext: `${student.grade} Scholar`,
-        badge: student.prefectBadge || (student.prefectRole ? `🏅 ${student.prefectRole}` : undefined),
+        badge: student.prefectBadge ? student.prefectBadge.replace(/[⭐🏅👑🛡️🌟]/g, '').trim() : (student.prefectRole ? student.prefectRole : undefined),
         classId: student.classId,
         clubs: student.clubs || []
       };
@@ -96,7 +98,7 @@ export const FloatingChatWidget: React.FC = () => {
         id: tutor.id,
         name: tutor.name,
         subtext: `${tutor.role || 'Faculty Educator'} • ${tutor.department || 'Academic Staff'}`,
-        badge: '👨‍🏫 Tutor',
+        badge: 'Tutor',
         classId: tutor.assignedClasses?.[0],
         clubs: []
       };
@@ -125,7 +127,7 @@ export const FloatingChatWidget: React.FC = () => {
         id: 'admin-1',
         name: 'School Administrator',
         subtext: 'Principal Safeguarding Active',
-        badge: '👑 Admin',
+        badge: 'Admin',
         classId: undefined,
         clubs: []
       };
@@ -139,7 +141,7 @@ export const FloatingChatWidget: React.FC = () => {
         id: demoTutor.id,
         name: demoTutor.name,
         subtext: `${demoTutor.role || 'Faculty Tutor'} (Demo Mode)`,
-        badge: '👨‍🏫 Tutor',
+        badge: 'Tutor',
         classId: undefined,
         clubs: []
       };
@@ -150,7 +152,7 @@ export const FloatingChatWidget: React.FC = () => {
         id: 'admin-1',
         name: 'School Administrator',
         subtext: 'Principal Oversight (Demo Mode)',
-        badge: '👑 Admin',
+        badge: 'Admin',
         classId: undefined,
         clubs: []
       };
@@ -174,7 +176,7 @@ export const FloatingChatWidget: React.FC = () => {
       grade: 'SSS 2',
       classId: 'cls-sss2',
       clubs: ['JETS Science Club', 'Debate & Literary Society'],
-      prefectBadge: '🏅 Head Girl'
+      prefectBadge: 'Head Girl'
     };
 
     return {
@@ -294,10 +296,8 @@ export const FloatingChatWidget: React.FC = () => {
           }
           aria-label="Open Live Chat"
         >
-          {/* Small 💬 symbol as requested */}
-          <span className="text-2xl select-none leading-none group-hover:scale-110 transition-transform">
-            💬
-          </span>
+          {/* Professional SVG Message Icon */}
+          <MessageCircle className="w-7 h-7 text-white group-hover:scale-110 transition-transform shrink-0" />
 
           {/* Active Status Pulse Dot for Representative on Landing Page */}
           {isLandingPageOrGuest && (
@@ -351,7 +351,9 @@ export const FloatingChatWidget: React.FC = () => {
           <div className="bg-gradient-to-r from-blue-950 via-indigo-950 to-neutral-900 text-white p-4 shrink-0 flex flex-col gap-2.5">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2.5">
-                <span className="text-xl">💬</span>
+                <div className="w-8 h-8 rounded-xl bg-white/10 flex items-center justify-center shrink-0">
+                  <MessageSquare className="w-4 h-4 text-amber-300" />
+                </div>
                 <div>
                   <h4 className="font-black text-sm text-white leading-tight">All School Chats</h4>
                   <div className="flex items-center gap-1.5 text-[11px] text-neutral-300 mt-0.5">
@@ -462,11 +464,11 @@ export const FloatingChatWidget: React.FC = () => {
 
                 if (lastMsg) {
                   if (lastMsg.audioVoiceNote) {
-                    lastMsgSnippet = `🎤 Voice Note (${lastMsg.audioVoiceNote.durationSeconds}s)`;
+                    lastMsgSnippet = `Voice Note (${lastMsg.audioVoiceNote.durationSeconds}s)`;
                   } else if (lastMsg.imageAttachment) {
-                    lastMsgSnippet = '📷 Photo Attachment';
+                    lastMsgSnippet = 'Photo Attachment';
                   } else if (lastMsg.attachments && lastMsg.attachments.length > 0) {
-                    lastMsgSnippet = `📎 ${lastMsg.attachments[0].name}`;
+                    lastMsgSnippet = `Attachment: ${lastMsg.attachments[0].name}`;
                   } else if (lastMsg.content) {
                     const sender = lastMsg.senderId === currentIdentity.id ? 'You' : lastMsg.senderName.split(' ')[0];
                     lastMsgSnippet = `${sender}: ${lastMsg.content}`;
@@ -539,7 +541,7 @@ export const FloatingChatWidget: React.FC = () => {
 
           {/* Footer note */}
           <div className="p-2.5 bg-neutral-50 border-t border-neutral-100 text-center text-[10px] text-neutral-400 font-semibold shrink-0">
-            Click any chat to open full interactive pop-up overlay 💬
+            Click any channel to open the live interactive chat system
           </div>
         </div>
       )}

@@ -3,7 +3,6 @@ import {
   BookOpen, 
   Layers, 
   CheckCircle2, 
-  Sparkles, 
   Compass, 
   Award, 
   Download, 

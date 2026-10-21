@@ -54,7 +54,7 @@ import { SchoolChatSystem } from '../chat/SchoolChatSystem';
 import { SchoolPrefectBadgesModal } from '../chat/ChatLeadershipModals';
 import { NetlifyCloudSyncModal } from './admin/NetlifyCloudSyncModal';
 import { isRemoteEnabled } from '../../lib/supabase';
-import { Bot, Newspaper, Compass, Database, HeartHandshake, ClipboardCheck } from 'lucide-react';
+import { Newspaper, Compass, Database, HeartHandshake, ClipboardCheck } from 'lucide-react';
 
 interface AdminPortalProps {
   onBackToWebsite: () => void;
@@ -125,7 +125,7 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onBackToWebsite }) => 
       icon: MessageSquare, 
       badge: unreadVisitorInquiriesCount > 0 ? `${unreadVisitorInquiriesCount} New` : 'Live' 
     },
-    { id: 'calvin_tokens', label: 'Calvin AI Tokens', icon: Bot, badge: availableTokensCount > 0 ? `${availableTokensCount} Ready` : undefined },
+    { id: 'calvin_tokens', label: 'Calvin AI Tokens', icon: Key, badge: availableTokensCount > 0 ? `${availableTokensCount} Ready` : undefined },
     { id: 'scheme_of_work', label: 'Schemes of Work (Curriculum Matrix)', icon: Compass, badge: 'Curriculum' },
     { id: 'calendar', label: 'Term Calendar & Events', icon: Calendar },
     { id: 'gallery', label: 'Campus Gallery & Photos', icon: Camera, badge: `${galleryPhotos?.length || 0} Photos` },
@@ -455,7 +455,7 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onBackToWebsite }) => 
                     onClick={() => setActiveTab('calvin_tokens')}
                     className="p-4 rounded-xl border border-stone-200 hover:border-indigo-500 hover:bg-indigo-50/50 text-left transition-all group"
                   >
-                    <Bot className="w-5 h-5 text-indigo-600 mb-2 group-hover:scale-110 transition-transform" />
+                    <Key className="w-5 h-5 text-indigo-600 mb-2 group-hover:scale-110 transition-transform" />
                     <div className="font-bold text-xs text-stone-900">Calvin AI Tokens</div>
                     <div className="text-[11px] text-stone-500">Mint study access</div>
                   </button>

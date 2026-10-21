@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useSchool } from '../../../context/SchoolContext';
 import { compressImageFile } from '../../../utils/imageUploadHelper';
+import { syncStateOnline, broadcastLocalStateChange } from '../../../lib/supabase';
 import { SchoolLogo } from '../../SchoolLogo';
 import { 
   Save, 
@@ -618,7 +619,9 @@ export const AdminLandingPageTab: React.FC = () => {
                     <div className="py-2">
                       <SchoolLogo size="sm" />
                     </div>
-                    <span className="text-[10px] text-emerald-600 font-bold mt-2">✓ Rendered on Homepage</span>
+                    <span className="text-[10px] text-emerald-600 font-bold mt-2 flex items-center">
+                      <Check className="w-3 h-3 inline mr-1 text-emerald-600" /> Rendered on Homepage
+                    </span>
                   </div>
 
                   {/* Preview 2: Dark Footer Banner */}
@@ -629,7 +632,9 @@ export const AdminLandingPageTab: React.FC = () => {
                     <div className="py-2">
                       <SchoolLogo size="sm" variant="light" />
                     </div>
-                    <span className="text-[10px] text-amber-400 font-bold mt-2">✓ Rendered on Footer</span>
+                    <span className="text-[10px] text-amber-400 font-bold mt-2 flex items-center">
+                      <Check className="w-3 h-3 inline mr-1 text-amber-400" /> Rendered on Footer
+                    </span>
                   </div>
 
                   {/* Preview 3: Terminal Report Card Letterhead */}
@@ -1557,7 +1562,7 @@ export const AdminLandingPageTab: React.FC = () => {
                     {/* President & Vice President Selectors */}
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1 border-t border-stone-200">
                       <div>
-                        <label className="block text-[10px] font-black text-amber-700 mb-0.5">👑 President:</label>
+                        <label className="block text-[10px] font-black text-amber-800 mb-0.5 uppercase tracking-wider">President:</label>
                         <select
                           value={c.presidentStudentId || ''}
                           onChange={(e) => assignClubLeaders(c.id, e.target.value || undefined, c.vicePresidentStudentId, c.memberStudentIds)}
@@ -1571,7 +1576,7 @@ export const AdminLandingPageTab: React.FC = () => {
                       </div>
 
                       <div>
-                        <label className="block text-[10px] font-black text-emerald-700 mb-0.5">👑 Vice President:</label>
+                        <label className="block text-[10px] font-black text-emerald-800 mb-0.5 uppercase tracking-wider">Vice President:</label>
                         <select
                           value={c.vicePresidentStudentId || ''}
                           onChange={(e) => assignClubLeaders(c.id, c.presidentStudentId, e.target.value || undefined, c.memberStudentIds)}
@@ -1604,6 +1609,19 @@ export const AdminLandingPageTab: React.FC = () => {
                 <div className="flex items-center gap-2 shrink-0">
                   <button
                     type="button"
+                    onClick={() => {
+                      broadcastLocalStateChange('stanbax_house_standings', houseStandings);
+                      void syncStateOnline('stanbax_house_standings', houseStandings);
+                      showToast('Inter-house sports teams saved & synchronized across Stanbax!');
+                    }}
+                    className="px-3 py-1.5 text-xs font-bold text-emerald-800 bg-emerald-50 hover:bg-emerald-100 border border-emerald-300 rounded-xl flex items-center gap-1.5 transition-colors cursor-pointer"
+                    title="Synchronize house teams and standings to the cloud database"
+                  >
+                    <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+                    <span>Sync Houses</span>
+                  </button>
+                  <button
+                    type="button"
                     onClick={resetHouseStandingsToDefault}
                     className="px-3 py-1.5 text-xs font-bold text-stone-600 bg-stone-100 hover:bg-stone-200 rounded-xl flex items-center gap-1.5 transition-colors cursor-pointer"
                   >
@@ -1632,23 +1650,23 @@ export const AdminLandingPageTab: React.FC = () => {
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                {houseStandings.map((h) => (
-                  <div key={h.name} className="p-4 bg-white rounded-2xl border border-stone-200 shadow-xs space-y-3 relative overflow-hidden flex flex-col justify-between">
-                    <div className="absolute top-0 left-0 right-0 h-2" style={{ backgroundColor: h.color }} />
+                {houseStandings.map((h, idx) => (
+                  <div key={`house-team-${idx}`} className="p-4 bg-white rounded-2xl border border-stone-200 shadow-xs space-y-3 relative overflow-hidden flex flex-col justify-between">
+                    <div className="absolute top-0 left-0 right-0 h-2" style={{ backgroundColor: h.color || '#2563eb' }} />
                     <div className="space-y-2 pt-1">
                       <div className="flex items-center justify-between gap-2">
                         <input
                           type="text"
                           value={h.name}
-                          onChange={(e) => updateHouseStanding(h.name, { name: e.target.value })}
-                          className="text-xs font-black bg-stone-50 border border-stone-300 rounded-lg px-2 py-1 flex-1"
+                          onChange={(e) => updateHouseStanding(idx, { name: e.target.value })}
+                          className="text-xs font-black bg-stone-50 border border-stone-300 rounded-lg px-2 py-1 flex-1 focus:bg-white focus:ring-1 focus:ring-amber-500 outline-none"
                           placeholder="House Name"
                         />
                         <button
                           type="button"
                           onClick={() => {
                             if (confirm(`Are you sure you want to delete ${h.name}?`)) {
-                              deleteHouseStanding(h.name);
+                              deleteHouseStanding(idx);
                               showToast(`Deleted ${h.name}`);
                             }
                           }}
@@ -1659,14 +1677,28 @@ export const AdminLandingPageTab: React.FC = () => {
                         </button>
                       </div>
 
+                      {/* Scholar Count in House */}
+                      {(() => {
+                        const count = (students || []).filter(s => 
+                          s.house === h.name || 
+                          (s.house && h.name && (s.house.toLowerCase().includes(h.name.toLowerCase().split(' ')[0]) || h.name.toLowerCase().includes(s.house.toLowerCase())))
+                        ).length;
+                        return (
+                          <div className="flex items-center gap-1.5 text-[10px] text-stone-600 font-bold bg-stone-100/90 px-2 py-0.5 rounded-md w-fit">
+                            <Users className="w-3 h-3 text-stone-500" />
+                            <span>{count} {count === 1 ? 'Scholar' : 'Scholars'} in Team</span>
+                          </div>
+                        );
+                      })()}
+
                       <div className="grid grid-cols-2 gap-2">
                         <div>
                           <label className="block text-[10px] font-bold text-stone-500 mb-0.5">Points</label>
                           <input 
                             type="number"
                             value={h.points}
-                            onChange={(e) => updateHouseStanding(h.name, { points: Number(e.target.value) })}
-                            className="w-full px-2 py-1 text-xs font-bold bg-stone-50 border border-stone-300 rounded-lg"
+                            onChange={(e) => updateHouseStanding(idx, { points: Number(e.target.value) })}
+                            className="w-full px-2 py-1 text-xs font-bold bg-stone-50 border border-stone-300 rounded-lg focus:bg-white focus:ring-1 focus:ring-amber-500 outline-none"
                           />
                         </div>
                         <div>
@@ -1675,14 +1707,14 @@ export const AdminLandingPageTab: React.FC = () => {
                             <input 
                               type="color"
                               value={h.color || '#2563eb'}
-                              onChange={(e) => updateHouseStanding(h.name, { color: e.target.value })}
+                              onChange={(e) => updateHouseStanding(idx, { color: e.target.value })}
                               className="w-7 h-7 rounded border border-stone-300 p-0.5 cursor-pointer"
                             />
                             <input 
                               type="text"
                               value={h.color || '#2563eb'}
-                              onChange={(e) => updateHouseStanding(h.name, { color: e.target.value })}
-                              className="w-full px-1.5 py-1 text-[10px] font-mono bg-stone-50 border border-stone-300 rounded-lg"
+                              onChange={(e) => updateHouseStanding(idx, { color: e.target.value })}
+                              className="w-full px-1.5 py-1 text-[10px] font-mono bg-stone-50 border border-stone-300 rounded-lg focus:bg-white outline-none"
                             />
                           </div>
                         </div>
@@ -1693,9 +1725,9 @@ export const AdminLandingPageTab: React.FC = () => {
                         <input 
                           type="text"
                           value={h.motto || ''}
-                          onChange={(e) => updateHouseStanding(h.name, { motto: e.target.value })}
+                          onChange={(e) => updateHouseStanding(idx, { motto: e.target.value })}
                           placeholder="e.g. Valour and Integrity"
-                          className="w-full px-2 py-1 text-xs bg-stone-50 border border-stone-300 rounded-lg italic text-stone-700"
+                          className="w-full px-2 py-1 text-xs bg-stone-50 border border-stone-300 rounded-lg italic text-stone-700 focus:bg-white focus:ring-1 focus:ring-amber-500 outline-none"
                         />
                       </div>
 
@@ -1704,9 +1736,9 @@ export const AdminLandingPageTab: React.FC = () => {
                         <input 
                           type="text"
                           value={h.houseMaster || ''}
-                          onChange={(e) => updateHouseStanding(h.name, { houseMaster: e.target.value })}
+                          onChange={(e) => updateHouseStanding(idx, { houseMaster: e.target.value })}
                           placeholder="e.g. Mr. Olumide Ogunleye"
-                          className="w-full px-2 py-1 text-xs bg-stone-50 border border-stone-300 rounded-lg"
+                          className="w-full px-2 py-1 text-xs bg-stone-50 border border-stone-300 rounded-lg focus:bg-white focus:ring-1 focus:ring-amber-500 outline-none"
                         />
                       </div>
                     </div>

@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { 
   Crown, 
   Send, 
-  Bot, 
+  GraduationCap, 
   User, 
   Clock, 
   CheckCircle2, 
@@ -21,8 +21,7 @@ import {
   Compass,
   ChevronDown,
   ChevronUp,
-  X,
-  Sparkles
+  X
 } from 'lucide-react';
 import { useSchool } from '../../../context/SchoolContext';
 import { StudentProfile, SchemeOfWork } from '../../../types';
@@ -354,7 +353,7 @@ export const StudentCalvinAiTab: React.FC<StudentCalvinAiTabProps> = ({ student 
     if (!code) {
       // If code is empty, activate complimentary full-term pass
       grantDirectCalvinAccess(student.id, 'premium', 2160);
-      setTokenSuccess('✨ Complimentary Full-Term Student Pass activated! Launching Calvin AI...');
+      setTokenSuccess('Complimentary Full-Term Student Pass activated! Launching Calvin AI...');
       setTimeout(() => setTokenSuccess(null), 2000);
       return;
     }
@@ -527,14 +526,14 @@ Always write down the general formula first before substituting numbers. Showing
 
     // 4. Default Level-Adapted Academic Response
     if (isEarly) {
-      return `Hello little star, ${firstName}! ⭐
+      return `Hello little star, ${firstName}!
 
 I love how curious you are! In our ${classLevel} class at Stanbax Schools:
 
 • Everything in our world has a special name and purpose!
 • When we learn something new, we listen carefully and practice happily.
 
-You are doing a wonderful job. Keep smiling and asking great questions! 🌟`;
+You are doing a wonderful job. Keep smiling and asking great questions!`;
     }
 
     if (isPrimary) {
@@ -551,7 +550,7 @@ Think of this topic like something you see around you at school or at home. When
 • Step 3: Practice answering a textbook review question to test yourself.
 
 Superstar Study Tip:
-Explain this topic to a classmate or family member today! Teaching someone else is the best way to master your school subjects. ⭐`;
+Explain this topic to a classmate or family member today! Teaching someone else is the best way to master your school subjects.`;
     }
 
     if (isJunior) {
@@ -590,7 +589,7 @@ In the Nigerian WAEC WASSCE and Cambridge IGCSE syllabus for ${classLevel}, this
 3. Senior Examiner Strategy:
 WAEC and Cambridge examiners award distinct method marks independent of the final answer. Never omit intermediate working lines!
 
-${tier === 'premium' ? '✨ Premium Masterclass Privilege: Ask me to solve a specific WAEC past-paper question, provide a derivation, or generate a practice drill on this topic!' : 'Ask me any follow-up question or share a specific homework problem and I will explain it step by step!'}`;
+${tier === 'premium' ? 'Premium Masterclass Privilege: Ask me to solve a specific WAEC past-paper question, provide a derivation, or generate a practice drill on this topic!' : 'Ask me any follow-up question or share a specific homework problem and I will explain it step by step!'}`;
   };
 
   const handleSendMessage = async (customPrompt?: string) => {
@@ -806,7 +805,7 @@ ${tier === 'premium' ? '✨ Premium Masterclass Privilege: Ask me to solve a spe
           <div className="flex items-start gap-4">
             <div className="w-16 h-16 rounded-2xl bg-gradient-to-tr from-blue-500 via-indigo-500 to-purple-500 p-0.5 shadow-lg shrink-0">
               <div className="w-full h-full bg-slate-950 rounded-2xl flex items-center justify-center">
-                <Bot className="w-9 h-9 text-blue-400 animate-pulse" />
+                <GraduationCap className="w-9 h-9 text-blue-400" />
               </div>
             </div>
             <div>
@@ -944,7 +943,7 @@ ${tier === 'premium' ? '✨ Premium Masterclass Privilege: Ask me to solve a spe
             <div className="px-5 py-3.5 border-b border-slate-200 bg-slate-50 flex items-center justify-between">
               <div className="flex items-center gap-2.5">
                 <div className="relative">
-                  <Bot className="w-6 h-6 text-indigo-600" />
+                  <GraduationCap className="w-6 h-6 text-indigo-600" />
                   <span className="w-2 h-2 rounded-full bg-emerald-500 absolute -bottom-0.5 -right-0.5 ring-2 ring-white" />
                 </div>
                 <div>
@@ -970,12 +969,12 @@ ${tier === 'premium' ? '✨ Premium Masterclass Privilege: Ask me to solve a spe
             {access?.intensiveSupport && (
               <div className="mx-4 mt-3 p-3.5 rounded-2xl bg-gradient-to-r from-amber-50 via-rose-50 to-indigo-50 border border-amber-300 flex items-start gap-3 shadow-xs">
                 <div className="w-8 h-8 rounded-xl bg-amber-500 text-slate-950 flex items-center justify-center shrink-0 font-bold">
-                  <Sparkles className="w-4 h-4" />
+                  <Award className="w-4 h-4 text-slate-950" />
                 </div>
                 <div className="space-y-0.5 text-xs">
                   <div className="flex items-center gap-2">
                     <span className="font-black text-slate-900">
-                      🌟 Dedicated Scholar Academic Coaching Active
+                      Dedicated Scholar Academic Coaching Active
                     </span>
                     <span className="px-2 py-0.5 rounded-full bg-rose-100 text-rose-800 text-[10px] font-black uppercase">
                       {access.interventionLevel?.replace('_', ' ') || 'High Priority'}
@@ -1057,7 +1056,7 @@ ${tier === 'premium' ? '✨ Premium Masterclass Privilege: Ask me to solve a spe
                       ? 'bg-blue-600 text-white' 
                       : 'bg-indigo-600 text-white shadow-sm'
                   }`}>
-                    {msg.sender === 'user' ? <User className="w-4 h-4" /> : <Bot className="w-4 h-4" />}
+                    {msg.sender === 'user' ? <User className="w-4 h-4" /> : <GraduationCap className="w-4 h-4" />}
                   </div>
 
                   {/* Bubble */}
@@ -1114,7 +1113,7 @@ ${tier === 'premium' ? '✨ Premium Masterclass Privilege: Ask me to solve a spe
               {isLoading && (
                 <div className="flex gap-3 mr-auto max-w-[85%]">
                   <div className="w-8 h-8 rounded-full bg-indigo-600 text-white flex items-center justify-center shrink-0">
-                    <Bot className="w-4 h-4 animate-bounce" />
+                    <GraduationCap className="w-4 h-4 animate-bounce" />
                   </div>
                   <div className="bg-white border border-slate-200 rounded-2xl rounded-tl-none p-4 shadow-sm flex items-center gap-2">
                     <div className="w-2 h-2 rounded-full bg-indigo-600 animate-ping" />
@@ -1374,11 +1373,11 @@ ${tier === 'premium' ? '✨ Premium Masterclass Privilege: Ask me to solve a spe
                 type="button"
                 onClick={() => {
                   grantDirectCalvinAccess(student.id, 'premium', 2160);
-                  setTokenSuccess('✨ Complimentary Full-Term Pass activated! Launching Calvin AI...');
+                  setTokenSuccess('Complimentary Full-Term Pass activated! Launching Calvin AI...');
                 }}
                 className="w-full bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white font-black py-3 px-4 rounded-xl text-xs flex items-center justify-center gap-2 shadow-sm transition cursor-pointer active:scale-98"
               >
-                <Zap className="w-4 h-4 text-amber-300" />
+                <CheckCircle2 className="w-4 h-4 text-emerald-200" />
                 <span>Activate Instant Student Access (Full Term)</span>
               </button>
             </div>
@@ -1550,7 +1549,7 @@ ${tier === 'premium' ? '✨ Premium Masterclass Privilege: Ask me to solve a spe
                               }}
                               className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-[11px] shadow-xs cursor-pointer"
                             >
-                              <Bot className="w-3.5 h-3.5" />
+                              <GraduationCap className="w-3.5 h-3.5" />
                               <span>Ask Calvin About This Week</span>
                             </button>
                           </div>

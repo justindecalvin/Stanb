@@ -1,10 +1,10 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
+import { useSchool } from '../context/SchoolContext';
 import { 
   Trophy, 
   Award, 
   Flame, 
   ShieldCheck, 
-  Sparkles, 
   Flag, 
   Users, 
   TrendingUp, 
@@ -21,6 +21,7 @@ interface HouseData {
   badgeText: string;
   borderColor: string;
   accentBg: string;
+  colorHex?: string;
   motto: string;
   points: number;
   rank: number;
@@ -129,7 +130,52 @@ const HOUSES: HouseData[] = [
 ];
 
 export const HouseChampionshipLeaderboard: React.FC = () => {
-  const [selectedHouse, setSelectedHouse] = useState<HouseData>(HOUSES[0]);
+  const { houseStandings } = useSchool();
+
+  const housesList: HouseData[] = useMemo(() => {
+    if (!houseStandings || houseStandings.length === 0) return HOUSES;
+
+    // Sort by points descending to assign real competitive ranks
+    const sorted = [...houseStandings].sort((a, b) => (b.points || 0) - (a.points || 0));
+    return sorted.map((h, idx) => {
+      const match = HOUSES.find(def => 
+        def.name.toLowerCase().includes(h.name.toLowerCase().split(' ')[0]) || 
+        h.name.toLowerCase().includes(def.name.toLowerCase().split(' ')[0])
+      );
+
+      const rank = idx + 1;
+      return {
+        id: `house-${idx}-${h.name}`,
+        name: h.name,
+        colorName: h.name.includes('(') ? h.name.substring(h.name.indexOf('(') + 1).replace(')', '') : `${h.name} Team`,
+        badgeBg: match?.badgeBg || 'bg-amber-100',
+        badgeText: match?.badgeText || 'text-amber-950',
+        borderColor: match?.borderColor || 'border-amber-300',
+        accentBg: match?.accentBg || 'bg-amber-600',
+        colorHex: h.color || '#2563eb',
+        motto: h.motto || match?.motto || 'Fortitude and Honor',
+        points: h.points || 0,
+        rank,
+        sportsPoints: match?.sportsPoints || Math.round((h.points || 1200) * 0.35),
+        academicPoints: match?.academicPoints || Math.round((h.points || 1200) * 0.30),
+        culturalPoints: match?.culturalPoints || Math.round((h.points || 1200) * 0.20),
+        disciplinePoints: match?.disciplinePoints || Math.round((h.points || 1200) * 0.15),
+        houseMaster: h.houseMaster || match?.houseMaster || 'Appointed House Patron',
+        houseCaptain: match?.houseCaptain || 'Nominated Senior Scholar',
+        recentAchievements: match?.recentAchievements || [
+          `Active participant in Inter-House Athletics & March-Past`,
+          `Term Academic Decathlon & Quiz distinctions`,
+          `Inter-House Football & Track trials`
+        ]
+      };
+    });
+  }, [houseStandings]);
+
+  const [selectedHouseId, setSelectedHouseId] = useState<string>('');
+
+  const selectedHouse = useMemo(() => {
+    return housesList.find(h => h.id === selectedHouseId) || housesList[0] || HOUSES[0];
+  }, [housesList, selectedHouseId]);
 
   return (
     <section id="house-system" className="py-20 bg-[#FDFBF7] border-b border-[#EAE2CE] font-['Nunito',sans-serif]">
@@ -149,14 +195,14 @@ export const HouseChampionshipLeaderboard: React.FC = () => {
           </p>
         </div>
 
-        {/* 4 Houses Podium Grid */}
+        {/* Houses Podium Grid */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-12">
-          {HOUSES.map((house) => {
+          {housesList.map((house) => {
             const isSelected = selectedHouse.id === house.id;
             return (
               <div
                 key={house.id}
-                onClick={() => setSelectedHouse(house)}
+                onClick={() => setSelectedHouseId(house.id)}
                 className={`bg-white rounded-3xl p-6 border transition-all duration-300 flex flex-col justify-between cursor-pointer transform hover:-translate-y-1 ${
                   isSelected 
                     ? `shadow-xl ring-2 ring-neutral-900 ${house.borderColor}` 

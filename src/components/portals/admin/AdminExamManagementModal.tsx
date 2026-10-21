@@ -30,7 +30,8 @@ export const AdminExamManagementModal: React.FC<AdminExamManagementModalProps> =
     updateEntranceExamSettings, 
     resetEntranceExamSettings,
     applications,
-    updateApplicationExamDetails
+    updateApplicationExamDetails,
+    schoolInfo
   } = useSchool();
 
   const [formData, setFormData] = useState<EntranceExamSettings>({ ...entranceExamSettings });
@@ -104,7 +105,7 @@ export const AdminExamManagementModal: React.FC<AdminExamManagementModalProps> =
           'Printed Application Slip / Reference Code'
         ],
         coordinatorName: 'Admissions Screening Committee',
-        coordinatorPhone: '+234 803 456 7890',
+        coordinatorPhone: schoolInfo.phone || '+234 803 456 7890',
         passMark: 60,
         instructions: 'Candidates must arrive 30 minutes before exam time for verification and accreditation. Parents are welcome to wait in the hospitality lounge.',
         fee: 'Free / Included with Application'

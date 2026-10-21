@@ -36,11 +36,14 @@ export const AdminStudentsAlumniTab: React.FC = () => {
     approveAlumniRegistration,
     rejectAlumniRegistration,
     deleteAlumniRegistration,
+    updateStudent,
+    houseStandings,
     schoolInfo 
   } = useSchool();
 
   const [searchTerm, setSearchTerm] = useState('');
   const [filterType, setFilterType] = useState<'all' | 'active' | 'alumni' | 'upgraded' | 'pending_alumni'>('all');
+  const [selectedHouseFilter, setSelectedHouseFilter] = useState('all');
   const [successMsg, setSuccessMsg] = useState('');
   const [errorMsg, setErrorMsg] = useState('');
   const [showSyncModal, setShowSyncModal] = useState(false);
@@ -63,9 +66,16 @@ export const AdminStudentsAlumniTab: React.FC = () => {
     const matchesSearch = 
       s.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       s.regNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      s.grade.toLowerCase().includes(searchTerm.toLowerCase());
+      s.grade.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (s.house && s.house.toLowerCase().includes(searchTerm.toLowerCase()));
 
     if (!matchesSearch) return false;
+
+    if (selectedHouseFilter !== 'all') {
+      const match = s.house === selectedHouseFilter || 
+        (s.house && (s.house.toLowerCase().includes(selectedHouseFilter.toLowerCase().split(' ')[0]) || selectedHouseFilter.toLowerCase().includes(s.house.toLowerCase())));
+      if (!match) return false;
+    }
 
     if (filterType === 'active') return !s.isAlumni;
     if (filterType === 'alumni') return !!s.isAlumni;
@@ -285,16 +295,33 @@ export const AdminStudentsAlumniTab: React.FC = () => {
       </div>
 
       {/* Filter and Search Bar */}
-      <div className="bg-white rounded-2xl p-4 border border-slate-200 shadow-sm flex flex-col sm:flex-row gap-3 items-center justify-between">
-        <div className="relative w-full sm:w-80">
-          <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
-          <input
-            type="text"
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            placeholder="Search by student name, Reg No, or class..."
-            className="w-full pl-9 pr-3.5 py-2.5 rounded-xl border border-slate-300 text-xs font-medium focus:ring-2 focus:ring-blue-800 outline-none"
-          />
+      <div className="bg-white rounded-2xl p-4 border border-slate-200 shadow-sm flex flex-col md:flex-row gap-3 items-center justify-between">
+        <div className="flex flex-col sm:flex-row items-center gap-2 w-full md:w-auto flex-1">
+          <div className="relative w-full sm:w-80">
+            <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+            <input
+              type="text"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              placeholder="Search by student name, Reg No, or class..."
+              className="w-full pl-9 pr-3.5 py-2.5 rounded-xl border border-slate-300 text-xs font-medium focus:ring-2 focus:ring-blue-800 outline-none"
+            />
+          </div>
+
+          {/* House Filter Dropdown */}
+          <select
+            value={selectedHouseFilter}
+            onChange={(e) => setSelectedHouseFilter(e.target.value)}
+            className="w-full sm:w-auto px-3 py-2.5 rounded-xl border border-slate-300 text-xs font-bold text-slate-700 bg-slate-50 hover:bg-slate-100 cursor-pointer outline-none focus:ring-2 focus:ring-blue-800 shrink-0"
+            title="Filter roster by Inter-House Sports Team"
+          >
+            <option value="all">All Athletic Houses</option>
+            {houseStandings.map(h => (
+              <option key={h.name} value={h.name}>
+                {h.name}
+              </option>
+            ))}
+          </select>
         </div>
 
         <div className="flex items-center gap-1.5 w-full sm:w-auto overflow-x-auto text-xs">
@@ -435,10 +462,48 @@ export const AdminStudentsAlumniTab: React.FC = () => {
                   )}
                 </div>
 
-                <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-slate-600">
+                <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 text-xs text-slate-600">
                   <span>Class: <strong className="text-slate-800">{std.grade}</strong></span>
                   <span>•</span>
                   <span>Annual Average: <strong className="text-slate-800">{std.termAverage}%</strong></span>
+                  <span>•</span>
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-slate-500 font-medium">House:</span>
+                    {(() => {
+                      const matchedHouse = (houseStandings || []).find(h => 
+                        h.name.toLowerCase() === (std.house || '').toLowerCase() ||
+                        h.name.toLowerCase().includes((std.house || '').toLowerCase()) ||
+                        (std.house || '').toLowerCase().includes(h.name.toLowerCase())
+                      ) || houseStandings?.[0];
+                      return (
+                        <div className="flex items-center gap-1.5 bg-slate-50 border border-slate-200 rounded-lg px-2 py-0.5">
+                          {matchedHouse?.color && (
+                            <span 
+                              className="w-2.5 h-2.5 rounded-full inline-block shrink-0 shadow-2xs border border-white"
+                              style={{ backgroundColor: matchedHouse.color }}
+                            />
+                          )}
+                          <select
+                            value={std.house || ''}
+                            onChange={(e) => {
+                              updateStudent(std.id, { house: e.target.value });
+                              setSuccessMsg(`Assigned ${std.name} to ${e.target.value || 'Unassigned House'}`);
+                              setTimeout(() => setSuccessMsg(''), 3500);
+                            }}
+                            className="text-xs font-bold text-slate-800 bg-transparent border-none cursor-pointer outline-none focus:ring-0 p-0"
+                            title="Change this scholar's assigned athletic house"
+                          >
+                            <option value="">-- Unassigned --</option>
+                            {houseStandings.map(h => (
+                              <option key={h.name} value={h.name}>
+                                {h.name}
+                              </option>
+                            ))}
+                          </select>
+                        </div>
+                      );
+                    })()}
+                  </div>
                   <span>•</span>
                   <span>History Archive: <strong className="text-blue-700 font-semibold">{std.academicHistory?.length || 1} Past Sessions Logged</strong></span>
                 </div>

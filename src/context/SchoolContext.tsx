@@ -11,6 +11,7 @@ import {
   syncStateOnline,
   syncNewDataTypesOnline,
   ensureAdminRemoteSession,
+  broadcastLocalStateChange,
 } from '../lib/supabase';
 import { 
   AppImages, 
@@ -293,6 +294,7 @@ interface SchoolContextType {
   // 11. Grades & Assessments
   grades: GradeRecord[];
   updateGrade: (subject: string, ca1: number, ca2: number, exam: number, ca3?: number, studentId?: string) => void;
+  batchUpdateClassGrades: (subject: string, scores: Array<{ studentId: string; ca1: number; ca2: number; ca3: number; exam: number }>) => void;
   getStudentGrades: (studentId: string) => GradeRecord[];
   assessmentConfig: AssessmentControlConfig;
   updateAssessmentConfig: (config: Partial<AssessmentControlConfig>) => void;
@@ -411,6 +413,7 @@ interface SchoolContextType {
     passportPhoto?: string;
     currentOccupation?: string;
     currentInstitution?: string;
+    formerHouse?: string;
   }) => Promise<{ success: boolean; message: string; registration: AlumniRegistration }>;
   approveAlumniRegistration: (id: string) => Promise<{ success: boolean; message: string }>;
   rejectAlumniRegistration: (id: string, reason?: string) => { success: boolean; message: string };
@@ -509,9 +512,9 @@ interface SchoolContextType {
   resetClubsToDefault: () => void;
 
   houseStandings: HouseStanding[];
-  updateHouseStanding: (name: string, house: Partial<HouseStanding>) => void;
+  updateHouseStanding: (indexOrName: number | string, house: Partial<HouseStanding>) => void;
   addHouseStanding: (house: HouseStanding) => void;
-  deleteHouseStanding: (name: string) => void;
+  deleteHouseStanding: (indexOrName: number | string) => void;
   resetHouseStandingsToDefault: () => void;
 
   busRoutes: BusRoute[];
@@ -1176,12 +1179,43 @@ export const SchoolProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     return DEFAULT_HOUSE_STANDINGS;
   });
 
-  const updateHouseStanding = (name: string, houseUpdate: Partial<HouseStanding>) => {
+  const updateHouseStanding = (indexOrName: number | string, houseUpdate: Partial<HouseStanding>) => {
     setHouseStandings(prev => {
-      const updated = prev.map(h => h.name === name ? { ...h, ...houseUpdate } : h);
+      const oldItem = prev.find((h, idx) => typeof indexOrName === 'number' ? idx === indexOrName : h.name === indexOrName);
+      const oldName = oldItem?.name;
+      const updated = prev.map((h, idx) => {
+        const matches = typeof indexOrName === 'number' ? idx === indexOrName : h.name === indexOrName;
+        return matches ? { ...h, ...houseUpdate } : h;
+      });
       try {
         localStorage.setItem('stanbax_house_standings', JSON.stringify(updated));
       } catch {}
+      broadcastLocalStateChange('stanbax_house_standings', updated);
+      void syncStateOnline('stanbax_house_standings', updated);
+
+      // Cascade house renaming to existing students
+      if (oldName && houseUpdate.name && houseUpdate.name !== oldName) {
+        const newName = houseUpdate.name;
+        setStudents(prevStudents => {
+          let modified = false;
+          const next = prevStudents.map(s => {
+            if (s.house === oldName || (s.house && s.house.toLowerCase() === oldName.toLowerCase())) {
+              modified = true;
+              return { ...s, house: newName };
+            }
+            return s;
+          });
+          if (modified) {
+            try {
+              localStorage.setItem('stanbax_students', JSON.stringify(next));
+            } catch {}
+            broadcastLocalStateChange('stanbax_students', next);
+            void syncStateOnline('stanbax_students', next);
+          }
+          return modified ? next : prevStudents;
+        });
+      }
+
       return updated;
     });
   };
@@ -1192,16 +1226,48 @@ export const SchoolProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       try {
         localStorage.setItem('stanbax_house_standings', JSON.stringify(updated));
       } catch {}
+      broadcastLocalStateChange('stanbax_house_standings', updated);
+      void syncStateOnline('stanbax_house_standings', updated);
       return updated;
     });
   };
 
-  const deleteHouseStanding = (name: string) => {
+  const deleteHouseStanding = (indexOrName: number | string) => {
     setHouseStandings(prev => {
-      const updated = prev.filter(h => h.name !== name);
+      const deletedItem = prev.find((h, idx) => typeof indexOrName === 'number' ? idx === indexOrName : h.name === indexOrName);
+      const deletedName = deletedItem?.name;
+      const updated = prev.filter((h, idx) => {
+        return typeof indexOrName === 'number' ? idx !== indexOrName : h.name !== indexOrName;
+      });
       try {
         localStorage.setItem('stanbax_house_standings', JSON.stringify(updated));
       } catch {}
+      broadcastLocalStateChange('stanbax_house_standings', updated);
+      void syncStateOnline('stanbax_house_standings', updated);
+
+      // Reassign students of deleted house to primary remaining house
+      if (deletedName && updated.length > 0) {
+        const fallbackHouse = updated[0].name;
+        setStudents(prevStudents => {
+          let modified = false;
+          const next = prevStudents.map(s => {
+            if (s.house === deletedName || (s.house && s.house.toLowerCase() === deletedName.toLowerCase())) {
+              modified = true;
+              return { ...s, house: fallbackHouse };
+            }
+            return s;
+          });
+          if (modified) {
+            try {
+              localStorage.setItem('stanbax_students', JSON.stringify(next));
+            } catch {}
+            broadcastLocalStateChange('stanbax_students', next);
+            void syncStateOnline('stanbax_students', next);
+          }
+          return modified ? next : prevStudents;
+        });
+      }
+
       return updated;
     });
   };
@@ -1209,8 +1275,10 @@ export const SchoolProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   const resetHouseStandingsToDefault = () => {
     setHouseStandings(DEFAULT_HOUSE_STANDINGS);
     try {
-      localStorage.removeItem('stanbax_house_standings');
+      localStorage.setItem('stanbax_house_standings', JSON.stringify(DEFAULT_HOUSE_STANDINGS));
     } catch {}
+    broadcastLocalStateChange('stanbax_house_standings', DEFAULT_HOUSE_STANDINGS);
+    void syncStateOnline('stanbax_house_standings', DEFAULT_HOUSE_STANDINGS);
   };
 
   // Student Life: Bus Routes
@@ -2700,6 +2768,102 @@ export const SchoolProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       try {
         localStorage.setItem('stanbax_students', JSON.stringify(updated));
       } catch {}
+      broadcastLocalStateChange('stanbax_students', updated);
+      void syncStateOnline('stanbax_students', updated);
+      return updated;
+    });
+  };
+
+  const batchUpdateClassGrades = (
+    subject: string,
+    scores: Array<{
+      studentId: string;
+      ca1: number;
+      ca2: number;
+      ca3: number;
+      exam: number;
+    }>
+  ) => {
+    const activeTerm = assessmentConfig.activeTerm;
+    const scoresMap = new Map<string, { ca1: number; ca2: number; ca3: number; exam: number }>();
+    scores.forEach(s => scoresMap.set(s.studentId, s));
+
+    setStudents(prev => {
+      const updated = prev.map(s => {
+        const score = scoresMap.get(s.id);
+        if (!score) return s;
+
+        const { ca1, ca2, ca3, exam } = score;
+        const total = ca1 + ca2 + ca3 + exam;
+        const { grade, remark } = calculateGrade(total);
+
+        const existing = s.grades || [];
+        const idx = existing.findIndex(g => g.subject.toLowerCase() === subject.toLowerCase());
+
+        let nextGrades: GradeRecord[];
+        if (idx >= 0) {
+          nextGrades = existing.map((g, i) => {
+            if (i !== idx) return g;
+            const t1 = activeTerm === '1st Term' ? total : g.term1Total;
+            const t2 = activeTerm === '2nd Term' ? total : g.term2Total;
+            const t3 = activeTerm === '3rd Term' ? total : g.term3Total;
+            const knownTerms = [t1, t2, t3].filter((v): v is number => typeof v === 'number');
+            const annualAvg = knownTerms.length > 0
+              ? Math.round((knownTerms.reduce((a, b) => a + b, 0) / knownTerms.length) * 10) / 10
+              : total;
+            return {
+              ...g,
+              ca1,
+              ca2,
+              ca3,
+              exam,
+              total,
+              grade,
+              remark,
+              term1Total: t1,
+              term2Total: t2,
+              term3Total: t3,
+              annualAverage: annualAvg
+            };
+          });
+        } else {
+          const record: GradeRecord = {
+            id: `grd-${s.id}-${subject.toLowerCase().replace(/[^a-z0-9]+/g, '-')}`,
+            subject,
+            ca1,
+            ca2,
+            ca3,
+            exam,
+            total,
+            grade,
+            remark,
+            annualAverage: total
+          };
+          if (activeTerm === '1st Term') record.term1Total = total;
+          else if (activeTerm === '2nd Term') record.term2Total = total;
+          else if (activeTerm === '3rd Term') record.term3Total = total;
+          nextGrades = [...existing, record];
+        }
+
+        const avg = Math.round(nextGrades.reduce((sum, g) => sum + g.total, 0) / (nextGrades.length || 1) * 10) / 10;
+        const annualAvg = Math.round(nextGrades.reduce((sum, g) => sum + (g.annualAverage ?? g.total), 0) / (nextGrades.length || 1) * 10) / 10;
+
+        return {
+          ...s,
+          grades: nextGrades,
+          termAverage: avg,
+          cumulativeAnnualAverage: annualAvg,
+          ...(activeTerm === '1st Term' ? { term1Average: avg } : {}),
+          ...(activeTerm === '2nd Term' ? { term2Average: avg } : {}),
+          ...(activeTerm === '3rd Term' ? { term3Average: avg } : {})
+        };
+      });
+
+      try {
+        localStorage.setItem('stanbax_students', JSON.stringify(updated));
+      } catch {}
+      broadcastLocalStateChange('stanbax_students', updated);
+      void syncStateOnline('stanbax_students', updated);
       return updated;
     });
   };
@@ -4136,6 +4300,7 @@ export const SchoolProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     passportPhoto?: string;
     currentOccupation?: string;
     currentInstitution?: string;
+    formerHouse?: string;
   }): Promise<{ success: boolean; message: string; registration: AlumniRegistration }> => {
     const regId = `alm-reg-${Date.now()}`;
     const studentId = `std-alm-${Date.now()}`;
@@ -4164,7 +4329,7 @@ export const SchoolProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       grade: `Alumni (Class of ${cleanYear})`,
       classId: 'class-alumni',
       gender: 'Male',
-      house: 'Gold House',
+      house: data.formerHouse || (houseStandings && houseStandings.length > 0 ? houseStandings[0].name : 'Sapphire (Blue House)'),
       parentName: 'Alumni Directory Record',
       parentPhone: data.phone.trim(),
       emergencyPhone: data.phone.trim(),
@@ -6652,23 +6817,23 @@ export const SchoolProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         if (chanObj?.type === 'class') {
           const matchedClass = classes.find(c => c.id === chanObj.classId || c.name.toLowerCase() === chanObj.name.toLowerCase() || (chanObj.className && c.name.toLowerCase() === chanObj.className.toLowerCase()));
           if (matchedClass?.prefectStudentId === studentObj.id || studentObj.classLeadershipRole === 'prefect') {
-            resolvedBadge = '⭐ Class Prefect';
+            resolvedBadge = 'Class Prefect';
           } else if (matchedClass?.assistantPrefectStudentId === studentObj.id || studentObj.classLeadershipRole === 'assistant_prefect') {
-            resolvedBadge = '⭐ Assistant Class Prefect';
+            resolvedBadge = 'Assistant Class Prefect';
           } else if (studentObj.prefectRole) {
-            resolvedBadge = `🏅 ${studentObj.prefectRole}`;
+            resolvedBadge = studentObj.prefectRole;
           }
         } else if (chanObj?.type === 'club') {
           const matchedClub = clubsList.find(c => c.id === chanObj.clubId || c.name.toLowerCase() === chanObj.name.toLowerCase() || (chanObj.clubName && c.name.toLowerCase() === chanObj.clubName.toLowerCase()));
           if (matchedClub?.presidentStudentId === studentObj.id || studentObj.clubLeadershipRoles?.[matchedClub?.id || ''] === 'president') {
-            resolvedBadge = '👑 President';
+            resolvedBadge = 'President';
           } else if (matchedClub?.vicePresidentStudentId === studentObj.id || studentObj.clubLeadershipRoles?.[matchedClub?.id || ''] === 'vice_president') {
-            resolvedBadge = '⭐ Vice President';
+            resolvedBadge = 'Vice President';
           } else if (studentObj.prefectRole) {
-            resolvedBadge = `🏅 ${studentObj.prefectRole}`;
+            resolvedBadge = studentObj.prefectRole;
           }
         } else if (studentObj.prefectRole) {
-          resolvedBadge = `🏅 ${studentObj.prefectRole}`;
+          resolvedBadge = studentObj.prefectRole;
         }
       }
     }
@@ -7408,6 +7573,12 @@ export const SchoolProvider: React.FC<{ children: React.ReactNode }> = ({ childr
           if (Array.isArray(parsed)) setStudents(parsed);
         } catch {}
       }
+      if (e.key === 'stanbax_house_standings' && e.newValue) {
+        try {
+          const parsed = JSON.parse(e.newValue);
+          if (Array.isArray(parsed) && parsed.length > 0) setHouseStandings(parsed);
+        } catch {}
+      }
     };
 
     // Live custom event fired on realtime cloud sync or broadcast
@@ -7427,6 +7598,8 @@ export const SchoolProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         setWaecPromptBroadcast(data);
       } else if (key === 'stanbax_students' && Array.isArray(data)) {
         setStudents(data);
+      } else if (key === 'stanbax_house_standings' && Array.isArray(data)) {
+        setHouseStandings(data);
       }
     };
 
@@ -7492,7 +7665,7 @@ export const SchoolProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       id: `vmsg-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
       sender: 'visitor',
       senderName: visitorInfo?.name || 'Visitor',
-      content: text || (attachment?.type === 'audio' ? '🎤 Voice message' : '📎 Attachment shared'),
+      content: text || (attachment?.type === 'audio' ? 'Voice message' : 'Attachment shared'),
       timestamp: now,
       status: 'delivered',
       deliveredAt: now,
@@ -7699,7 +7872,7 @@ export const SchoolProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       senderName: repInfo?.name || schoolRepConfig.repName,
       senderTitle: repInfo?.title || schoolRepConfig.repTitle,
       senderAvatar: schoolRepConfig.repAvatar,
-      content: text || (attachment?.type === 'audio' ? '🎤 Representative Voice Memo' : '📎 Document Attached'),
+      content: text || (attachment?.type === 'audio' ? 'Representative Voice Memo' : 'Document Attached'),
       timestamp: now,
       status: 'delivered',
       deliveredAt: now,
@@ -7761,7 +7934,7 @@ export const SchoolProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       sender: 'representative',
       senderName: schoolRepConfig.repName,
       senderTitle: schoolRepConfig.repTitle,
-      content: `🎉 Official Appointment Confirmed: ${data.type} for candidate ${data.candidateName} on ${new Date(data.date).toLocaleDateString(undefined, { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })} at ${data.timeSlot}. A calendar appointment has been logged with our admissions desk.`,
+      content: `Official Appointment Confirmed: ${data.type} for candidate ${data.candidateName} on ${new Date(data.date).toLocaleDateString(undefined, { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })} at ${data.timeSlot}. A calendar appointment has been logged with our admissions desk.`,
       timestamp: now,
       status: 'delivered',
       deliveredAt: now,
@@ -7823,7 +7996,7 @@ export const SchoolProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       sender: 'representative',
       senderName: targetRepName,
       senderTitle: targetRepTitle,
-      content: `🔄 Department Hand-Off: Inquiry transferred to ${targetRepName} (${targetRepTitle})${reason ? ` • Transfer Reason: "${reason}"` : ''}. All conversation history and submitted documents have been routed to the active desk.`,
+      content: `Department Hand-Off: Inquiry transferred to ${targetRepName} (${targetRepTitle})${reason ? ` • Transfer Reason: "${reason}"` : ''}. All conversation history and submitted documents have been routed to the active desk.`,
       timestamp: now,
       status: 'delivered',
       deliveredAt: now,
@@ -8463,6 +8636,7 @@ export const SchoolProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         deleteHomework,
         grades,
         updateGrade,
+        batchUpdateClassGrades,
         getStudentGrades,
         assessmentConfig,
         updateAssessmentConfig,

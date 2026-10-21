@@ -437,7 +437,7 @@ export const SchoolChatSystem: React.FC<SchoolChatSystemProps> = ({
             isTutor ? 'Faculty Educator' :
             isParent ? 'Guardian' : 'Scholar'
           ),
-          content: `🎤 Voice Note (${durationToSave}s)`,
+          content: `Voice Note (${durationToSave}s)`,
           audioVoiceNote: {
             url: base64Audio,
             durationSeconds: durationToSave
@@ -521,7 +521,7 @@ export const SchoolChatSystem: React.FC<SchoolChatSystemProps> = ({
         isTutor ? 'Faculty Educator' :
         isParent ? 'Guardian' : 'Scholar'
       ),
-      content: messageText.trim() || (selectedDocument ? `📎 Document: ${selectedDocument.name}` : '📷 Photo Attachment'),
+      content: messageText.trim() || (selectedDocument ? `Document: ${selectedDocument.name}` : 'Photo Attachment'),
       imageAttachment: selectedImage ? {
         url: selectedImage,
         caption: messageText.trim()
@@ -591,13 +591,13 @@ export const SchoolChatSystem: React.FC<SchoolChatSystemProps> = ({
     if (activeChannel?.type === 'class') {
       const cls = activeClassObj || classes.find(c => c.id === activeChannel.classId || c.name === activeChannel.className);
       if (cls?.prefectStudentId === msg.senderId || senderStudent?.classLeadershipRole === 'prefect') {
-        return '⭐ Class Prefect';
+        return 'Class Prefect';
       }
       if (cls?.assistantPrefectStudentId === msg.senderId || senderStudent?.classLeadershipRole === 'assistant_prefect') {
-        return '⭐ Assistant Prefect';
+        return 'Assistant Prefect';
       }
       if (senderStudent?.prefectBadge || senderStudent?.prefectRole) {
-        return senderStudent.prefectBadge || `🏅 ${senderStudent.prefectRole}`;
+        return senderStudent.prefectRole || senderStudent.prefectBadge?.replace(/[⭐🏅👑🛡️🌟]/g, '').trim();
       }
     }
 
@@ -605,19 +605,19 @@ export const SchoolChatSystem: React.FC<SchoolChatSystemProps> = ({
     if (activeChannel?.type === 'club') {
       const clb = activeClubObj || clubs.find(cl => cl.id === activeChannel.clubId || cl.name === activeChannel.clubName);
       if (clb?.presidentStudentId === msg.senderId || senderStudent?.clubLeadershipRoles?.[clb?.id || ''] === 'president') {
-        return '👑 President';
+        return 'President';
       }
       if (clb?.vicePresidentStudentId === msg.senderId || senderStudent?.clubLeadershipRoles?.[clb?.id || ''] === 'vice_president') {
-        return '👑 Vice President';
+        return 'Vice President';
       }
       if (senderStudent?.prefectBadge || senderStudent?.prefectRole) {
-        return senderStudent.prefectBadge || `🏅 ${senderStudent.prefectRole}`;
+        return senderStudent.prefectRole || senderStudent.prefectBadge?.replace(/[⭐🏅👑🛡️🌟]/g, '').trim();
       }
     }
 
     // Direct or other channels: show official school prefect badge if assigned
     if (senderStudent?.prefectBadge || senderStudent?.prefectRole) {
-      return senderStudent.prefectBadge || `🏅 ${senderStudent.prefectRole}`;
+      return senderStudent.prefectRole || senderStudent.prefectBadge?.replace(/[⭐🏅👑🛡️🌟]/g, '').trim();
     }
 
     return msg.senderBadge;
@@ -648,8 +648,7 @@ export const SchoolChatSystem: React.FC<SchoolChatSystemProps> = ({
           currentUserRole={currentUserRole}
           currentUserSubtext={currentUserSubtext}
           currentUserBadge={
-            currentStudent?.prefectBadge || 
-            (currentStudent?.prefectRole ? `🏅 ${currentStudent.prefectRole}` : undefined)
+            currentStudent?.prefectBadge ? currentStudent.prefectBadge.replace(/[⭐🏅👑🛡️🌟]/g, '').trim() : (currentStudent?.prefectRole || undefined)
           }
         />
       )}
@@ -751,7 +750,7 @@ export const SchoolChatSystem: React.FC<SchoolChatSystemProps> = ({
           <div className="p-3.5 rounded-2xl bg-gradient-to-r from-indigo-50 via-blue-50 to-indigo-50 border border-indigo-200 flex items-center justify-between gap-3 shadow-2xs">
             <div className="flex items-center gap-3 min-w-0">
               <div className="w-10 h-10 rounded-xl bg-indigo-600 text-white flex items-center justify-center font-black text-base shrink-0 shadow-xs">
-                👨‍🏫
+                <GraduationCap className="w-5 h-5 text-amber-300" />
               </div>
               <div className="min-w-0">
                 <span className="text-[10px] font-extrabold text-indigo-700 uppercase tracking-wider block">Assigned Form Master / Class Teacher</span>
@@ -871,9 +870,9 @@ export const SchoolChatSystem: React.FC<SchoolChatSystemProps> = ({
 
               if (lastMsg) {
                 if (lastMsg.audioVoiceNote) {
-                  lastMsgSnippet = `🎤 Voice Note (${lastMsg.audioVoiceNote.durationSeconds}s)`;
+                  lastMsgSnippet = `Voice Note (${lastMsg.audioVoiceNote.durationSeconds}s)`;
                 } else if (lastMsg.imageAttachment) {
-                  lastMsgSnippet = '📷 Photo Attachment';
+                  lastMsgSnippet = 'Photo Attachment';
                 } else if (lastMsg.content) {
                   const author = lastMsg.senderId === currentUserId ? 'You' : lastMsg.senderName.split(' ')[0];
                   lastMsgSnippet = `${author}: ${lastMsg.content}`;
@@ -1381,7 +1380,14 @@ export const SchoolChatSystem: React.FC<SchoolChatSystemProps> = ({
                               senderBadge.includes('Prefect') ? 'bg-indigo-100 text-indigo-900 border border-indigo-300' :
                               'bg-purple-100 text-purple-900 border border-purple-300'
                             }`}>
-                              {senderBadge}
+                              {senderBadge.includes('President') ? (
+                                <Crown className="w-3 h-3 text-amber-600 shrink-0" />
+                              ) : senderBadge.includes('Prefect') ? (
+                                <Award className="w-3 h-3 text-indigo-600 shrink-0" />
+                              ) : (
+                                <Award className="w-3 h-3 text-purple-600 shrink-0" />
+                              )}
+                              <span>{senderBadge.replace(/[⭐🏅👑🛡️🌟]/g, '').trim()}</span>
                             </span>
                           )}
 
@@ -1520,7 +1526,7 @@ export const SchoolChatSystem: React.FC<SchoolChatSystemProps> = ({
                                 </div>
                               )}
 
-                              {msg.content && (!msg.audioVoiceNote || !msg.content.startsWith('🎤')) && (!msg.imageAttachment || msg.content !== '📷 Photo Attachment') && (
+                              {msg.content && (!msg.audioVoiceNote || (!msg.content.startsWith('🎤') && !msg.content.startsWith('Voice Note'))) && (!msg.imageAttachment || (msg.content !== '📷 Photo Attachment' && msg.content !== 'Photo Attachment')) && (
                                 <p className="whitespace-pre-wrap">{renderHighlightedContent(msg.content, inChatSearchQuery)}</p>
                               )}
                             </div>
@@ -2119,7 +2125,7 @@ export const SchoolChatSystem: React.FC<SchoolChatSystemProps> = ({
                                 )}
                               </div>
                               <p className="text-[11px] text-neutral-500 font-medium truncate">
-                                {s.grade} • {s.house ? `${s.house} House` : 'Stanbax Standard'}
+                                {s.grade} • {s.house ? (s.house.toLowerCase().includes('house') ? s.house : `${s.house} House`) : 'Stanbax Scholar'}
                               </p>
                             </div>
                           </div>
@@ -2299,8 +2305,9 @@ export const SchoolChatSystem: React.FC<SchoolChatSystemProps> = ({
                               <div className="flex items-center gap-1.5 flex-wrap">
                                 <h5 className="font-extrabold text-xs text-neutral-900 truncate">{t.name}</h5>
                                 {isMyClassTeacher && (
-                                  <span className="px-2 py-0.5 rounded-full text-[9px] font-black bg-indigo-100 text-indigo-900 border border-indigo-200">
-                                    👨‍🏫 My Class Teacher
+                                  <span className="px-2 py-0.5 rounded-full text-[9px] font-black bg-indigo-100 text-indigo-900 border border-indigo-200 flex items-center gap-1">
+                                    <GraduationCap className="w-3 h-3 text-indigo-700 shrink-0" />
+                                    <span>My Class Teacher</span>
                                   </span>
                                 )}
                               </div>

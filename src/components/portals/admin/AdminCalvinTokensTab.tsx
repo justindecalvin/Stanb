@@ -14,7 +14,7 @@ import {
   Search, 
   Filter, 
   Zap, 
-  Bot,
+  X,
   ShieldCheck,
   Calendar,
   XCircle,
@@ -26,7 +26,6 @@ import {
   Square,
   Bell,
   MessageSquare,
-  Sparkles,
   HeartHandshake,
   Target,
   TrendingDown,
@@ -341,7 +340,7 @@ export const AdminCalvinTokensTab: React.FC = () => {
           <div className="space-y-2">
             <div className="flex items-center gap-2">
               <span className="px-3 py-1 rounded-full bg-indigo-500/30 border border-indigo-400/30 text-indigo-300 text-xs font-black uppercase tracking-wider flex items-center gap-1.5">
-                <Bot className="w-3.5 h-3.5 text-indigo-400" />
+                <Key className="w-3.5 h-3.5 text-indigo-400" />
                 <span>Super Admin Token Minting</span>
               </span>
               <span className="px-3 py-1 rounded-full bg-amber-400/20 border border-amber-400/30 text-amber-300 text-xs font-black">
@@ -422,7 +421,7 @@ export const AdminCalvinTokensTab: React.FC = () => {
                 : 'text-slate-600 hover:text-slate-900'
             }`}
           >
-            <Bot className="w-4 h-4 text-indigo-600" />
+            <Key className="w-4 h-4 text-indigo-600" />
             <span>Intensive Scholar Academic Attention</span>
             {flaggedCount > 0 && (
               <span className="px-1.5 py-0.5 rounded-full text-[10px] font-black bg-rose-500 text-white animate-pulse">
@@ -902,7 +901,7 @@ export const AdminCalvinTokensTab: React.FC = () => {
                   <span className="text-2xl font-black text-indigo-600">{withAccessCount}</span>
                 </div>
                 <div className="w-9 h-9 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center font-bold">
-                  <Bot className="w-4 h-4" />
+                  <Key className="w-4 h-4" />
                 </div>
               </div>
             </div>
@@ -939,10 +938,10 @@ export const AdminCalvinTokensTab: React.FC = () => {
                 className="px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-700 cursor-pointer focus:outline-none"
               >
                 <option value="all">All Scholars</option>
-                <option value="flagged">🌟 Intensive Attention Active ({flaggedCount})</option>
-                <option value="struggling">📉 Struggling Scholars (&lt;50% Avg) ({strugglingCount})</option>
-                <option value="has_access">✓ Has Active Calvin Access ({withAccessCount})</option>
-                <option value="needs_access">🔒 Needs Calvin Access</option>
+                <option value="flagged">Intensive Attention Active ({flaggedCount})</option>
+                <option value="struggling">Struggling Scholars (&lt;50% Avg) ({strugglingCount})</option>
+                <option value="has_access">Has Active Calvin Access ({withAccessCount})</option>
+                <option value="needs_access">Needs Calvin Access</option>
               </select>
             </div>
           </div>
@@ -1037,7 +1036,7 @@ export const AdminCalvinTokensTab: React.FC = () => {
                           <td className="py-3.5 px-3 text-center">
                             {hasAccess ? (
                               <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-black bg-indigo-100 text-indigo-900 border border-indigo-200">
-                                <Bot className="w-3 h-3 text-indigo-600" />
+                                <Key className="w-3 h-3 text-indigo-600" />
                                 <span>{student.calvinAiAccess?.tier?.toUpperCase()} ACCESS</span>
                               </span>
                             ) : (
@@ -1051,7 +1050,7 @@ export const AdminCalvinTokensTab: React.FC = () => {
                             {isFlagged ? (
                               <div className="space-y-1">
                                 <div className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-amber-100 text-amber-900 font-black text-[10px] border border-amber-300">
-                                  <Sparkles className="w-3 h-3 text-amber-600" />
+                                  <Zap className="w-3 h-3 text-amber-600" />
                                   <span>{student.calvinAiAccess?.interventionLevel?.replace('_', ' ').toUpperCase() || 'URGENT'} INTERVENTION</span>
                                 </div>
                                 {student.calvinAiAccess?.interventionSubjects && student.calvinAiAccess.interventionSubjects.length > 0 && (
@@ -1109,7 +1108,7 @@ export const AdminCalvinTokensTab: React.FC = () => {
                                   className="px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-amber-500 to-indigo-600 hover:from-amber-600 hover:to-indigo-700 text-white font-black text-xs flex items-center gap-1.5 shadow-xs cursor-pointer"
                                   title="Grants Calvin AI access and automatically enables intensive academic intervention"
                                 >
-                                  <Sparkles className="w-3.5 h-3.5 text-amber-200" />
+                                  <Zap className="w-3.5 h-3.5 text-amber-200" />
                                   <span>Grant Access & Enroll</span>
                                 </button>
                               )}
@@ -1148,7 +1147,7 @@ export const AdminCalvinTokensTab: React.FC = () => {
                 onClick={() => setSelectedStudentForIntervention(null)}
                 className="text-slate-400 hover:text-slate-600 p-1 cursor-pointer"
               >
-                ✕
+                <X className="w-4 h-4" />
               </button>
             </div>
 
@@ -1263,9 +1262,9 @@ export const AdminCalvinTokensTab: React.FC = () => {
               </div>
               <button
                 onClick={() => setShowDirectGrantModal(false)}
-                className="text-slate-400 hover:text-slate-600 p-1"
+                className="text-slate-400 hover:text-slate-600 p-1 cursor-pointer"
               >
-                ✕
+                <X className="w-4 h-4" />
               </button>
             </div>
 
@@ -1362,7 +1361,7 @@ export const AdminCalvinTokensTab: React.FC = () => {
             {/* Printable Slip Design */}
             <div className="p-5 border-2 border-dashed border-indigo-300 rounded-2xl bg-indigo-50/40 text-slate-800 space-y-3">
               <div className="flex items-center justify-center gap-2">
-                <Bot className="w-6 h-6 text-indigo-600" />
+                <Key className="w-6 h-6 text-indigo-600" />
                 <span className="font-black text-sm tracking-tight text-slate-900">
                   {schoolInfo.name}
                 </span>
