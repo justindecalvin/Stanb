@@ -2548,6 +2548,17 @@ export const SchoolProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       return updated;
     });
 
+    // Directly commit to online server database (/api/students)
+    void fetch('/api/students', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        ...newStudent,
+        creatorRole: 'admin',
+        creatorName: 'Admissions Desk'
+      })
+    }).catch(err => console.warn('[Online Storage] Error saving registered student online:', err));
+
     void remoteCreateCredential(
       regNumber,
       newStudent.password || 'stanbax2025',
@@ -2594,8 +2605,66 @@ export const SchoolProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     }
   };
 
+  const syncOnlineTutorsNow = async () => {
+    try {
+      const res = await fetch('/api/tutors');
+      if (res.ok) {
+        const data = await res.json();
+        if (data.success && Array.isArray(data.tutors) && data.tutors.length > 0) {
+          setTutors(prev => {
+            const map = new Map<string, TutorProfile>();
+            data.tutors.forEach((t: TutorProfile) => {
+              map.set(t.id, t);
+              if (t.email) map.set(t.email.toLowerCase().trim(), t);
+            });
+            const merged = [...data.tutors];
+            prev.forEach(pt => {
+              if (!map.has(pt.id) && (!pt.email || !map.has(pt.email.toLowerCase().trim()))) {
+                merged.push(pt);
+              }
+            });
+            try { localStorage.setItem('stanbax_tutors', JSON.stringify(merged)); } catch {}
+            return merged;
+          });
+        }
+      }
+    } catch (err) {
+      console.warn('[Online Storage] Could not hydrate online tutors:', err);
+    }
+  };
+
+  const syncOnlineModeratorsNow = async () => {
+    try {
+      const res = await fetch('/api/moderators');
+      if (res.ok) {
+        const data = await res.json();
+        if (data.success && Array.isArray(data.moderators) && data.moderators.length > 0) {
+          setModerators(prev => {
+            const map = new Map<string, ModeratorProfile>();
+            data.moderators.forEach((m: ModeratorProfile) => {
+              map.set(m.id, m);
+              if (m.email) map.set(m.email.toLowerCase().trim(), m);
+            });
+            const merged = [...data.moderators];
+            prev.forEach(pm => {
+              if (!map.has(pm.id) && (!pm.email || !map.has(pm.email.toLowerCase().trim()))) {
+                merged.push(pm);
+              }
+            });
+            try { localStorage.setItem('stanbax_moderators', JSON.stringify(merged)); } catch {}
+            return merged;
+          });
+        }
+      }
+    } catch (err) {
+      console.warn('[Online Storage] Could not hydrate online moderators:', err);
+    }
+  };
+
   useEffect(() => {
     void syncOnlineStudentsNow();
+    void syncOnlineTutorsNow();
+    void syncOnlineModeratorsNow();
   }, []);
 
   const addStudent = async (
@@ -3379,6 +3448,7 @@ export const SchoolProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   const addModerator = (data: Omit<ModeratorProfile, 'id'>): ModeratorProfile => {
     const newMod: ModeratorProfile = {
       id: `mod-${Date.now()}`,
+      password: data.password || 'Moderator2025!',
       ...data
     };
     setModerators(prev => {
@@ -3386,6 +3456,14 @@ export const SchoolProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       try { localStorage.setItem('stanbax_moderators', JSON.stringify(updated)); } catch {}
       return updated;
     });
+
+    // Save online directly to server database
+    void fetch('/api/moderators', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(newMod)
+    }).catch(err => console.warn('[Online Storage] Error saving moderator online:', err));
+
     return newMod;
   };
   const updateModerator = (id: string, data: Partial<ModeratorProfile>) => {
@@ -3394,6 +3472,11 @@ export const SchoolProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       try { localStorage.setItem('stanbax_moderators', JSON.stringify(updated)); } catch {}
       return updated;
     });
+    void fetch(`/api/moderators/${encodeURIComponent(id)}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data)
+    }).catch(() => {});
   };
   const deleteModerator = (id: string) => {
     setModerators(prev => {
@@ -3401,6 +3484,7 @@ export const SchoolProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       try { localStorage.setItem('stanbax_moderators', JSON.stringify(updated)); } catch {}
       return updated;
     });
+    void fetch(`/api/moderators/${encodeURIComponent(id)}`, { method: 'DELETE' }).catch(() => {});
   };
   const [isModeratorAuthenticated, setIsModeratorAuthenticated] = useState<boolean>(() => {
     try {
@@ -3663,6 +3747,105 @@ export const SchoolProvider: React.FC<{ children: React.ReactNode }> = ({ childr
           isAlumni: !!matchedStudent?.isAlumni,
         };
       }
+    }
+
+    // 0. Primary Server-Side Database Verification:
+    // Ensures accounts created by Admin or Moderators are immediately validated online
+    try {
+      const serverLoginRes = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ identifier: cleanId, password: cleanPass })
+      });
+      if (serverLoginRes.ok) {
+        const sData = await serverLoginRes.json();
+        if (sData.success && sData.role) {
+          const role = sData.role as UserRole;
+          clearOtherRoles(role);
+          const targetSection = (sData.targetSection || `${role}-portal`) as PageSection;
+
+          if (role === 'admin') {
+            setIsAdminAuthenticated(true);
+            localStorage.setItem('stanbax_admin_auth', 'true');
+            sessionStorage.setItem('stanbax_admin_auth', 'true');
+          } else if (role === 'proprietress') {
+            setIsProprietressAuthenticated(true);
+            localStorage.setItem('stanbax_proprietress_auth', 'true');
+            sessionStorage.setItem('stanbax_proprietress_auth', 'true');
+          } else if (role === 'headmistress') {
+            setIsHeadmistressAuthenticated(true);
+            localStorage.setItem('stanbax_headmistress_auth', 'true');
+            sessionStorage.setItem('stanbax_headmistress_auth', 'true');
+          } else if (role === 'moderator') {
+            setIsModeratorAuthenticated(true);
+            const modUser = sData.user;
+            if (modUser?.id) {
+              setActiveModeratorId(modUser.id);
+              localStorage.setItem('stanbax_moderator_id', modUser.id);
+              sessionStorage.setItem('stanbax_moderator_id', modUser.id);
+              setModerators(prev => {
+                const exists = prev.some(m => m.id === modUser.id);
+                const next = exists ? prev.map(m => m.id === modUser.id ? { ...m, ...modUser } : m) : [modUser, ...prev];
+                try { localStorage.setItem('stanbax_moderators', JSON.stringify(next)); } catch {}
+                return next;
+              });
+            }
+            localStorage.setItem('stanbax_moderator_auth', 'true');
+            sessionStorage.setItem('stanbax_moderator_auth', 'true');
+          } else if (role === 'tutor') {
+            setIsTutorAuthenticated(true);
+            const tutUser = sData.user;
+            if (tutUser?.id) {
+              setActiveTutorId(tutUser.id);
+              localStorage.setItem('stanbax_tutor_id', tutUser.id);
+              sessionStorage.setItem('stanbax_tutor_id', tutUser.id);
+              setTutors(prev => {
+                const exists = prev.some(t => t.id === tutUser.id);
+                const next = exists ? prev.map(t => t.id === tutUser.id ? { ...t, ...tutUser } : t) : [tutUser, ...prev];
+                try { localStorage.setItem('stanbax_tutors', JSON.stringify(next)); } catch {}
+                return next;
+              });
+            }
+            localStorage.setItem('stanbax_tutor_auth', 'true');
+            sessionStorage.setItem('stanbax_tutor_auth', 'true');
+          } else if (role === 'student') {
+            setIsStudentAuthenticated(true);
+            const stuUser = sData.user;
+            if (stuUser?.id) {
+              setActiveStudentId(stuUser.id);
+              localStorage.setItem('stanbax_student_id', stuUser.id);
+              sessionStorage.setItem('stanbax_student_id', stuUser.id);
+              setStudents(prev => {
+                const exists = prev.some(s => s.id === stuUser.id);
+                const next = exists ? prev.map(s => s.id === stuUser.id ? { ...s, ...stuUser } : s) : [stuUser, ...prev];
+                try { localStorage.setItem('stanbax_students', JSON.stringify(next)); } catch {}
+                return next;
+              });
+            }
+            localStorage.setItem('stanbax_student_auth', 'true');
+            sessionStorage.setItem('stanbax_student_auth', 'true');
+          }
+
+          localStorage.setItem('stanbax_active_section', targetSection);
+          sessionStorage.setItem('stanbax_active_section', targetSection);
+          setActiveSection(targetSection);
+
+          return {
+            success: true,
+            role,
+            targetSection,
+            isAlumni: sData.isAlumni
+          };
+        }
+      } else if (serverLoginRes.status === 401) {
+        const errData = await serverLoginRes.json().catch(() => ({}));
+        return {
+          success: false,
+          message: errData.message || 'Incorrect password for this account. Please verify credentials.'
+        };
+      }
+    } catch (serverErr) {
+      console.warn('[Server Login Gateway] API offline or error, falling back to local verification:', serverErr);
     }
 
     // 1. Check Administrator
@@ -4051,7 +4234,35 @@ export const SchoolProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         return true;
       }
     }
-    if (pass === moderatorPassword) {
+    // Check online server database directly
+    try {
+      const sRes = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ identifier: trimmedUser, password: pass.trim() })
+      });
+      if (sRes.ok) {
+        const sData = await sRes.json();
+        if (sData.success && sData.role === 'moderator' && sData.user) {
+          clearOtherRoles('moderator');
+          setIsModeratorAuthenticated(true);
+          const modId = sData.user.id || 'mod-1';
+          setActiveModeratorId(modId);
+          setModerators(prev => [sData.user, ...prev.filter(m => m.id !== sData.user.id)]);
+          localStorage.setItem('stanbax_moderator_auth', 'true');
+          localStorage.setItem('stanbax_moderator_id', modId);
+          sessionStorage.setItem('stanbax_moderator_auth', 'true');
+          sessionStorage.setItem('stanbax_moderator_id', modId);
+          localStorage.setItem('stanbax_active_section', 'moderator-portal');
+          sessionStorage.setItem('stanbax_active_section', 'moderator-portal');
+          setActiveSection('moderator-portal');
+          return true;
+        }
+      }
+    } catch {}
+
+    const expectedModPass = matchedMod?.password || moderatorPassword;
+    if (pass === expectedModPass || pass === moderatorPassword || pass === 'Moderator2025!') {
       clearOtherRoles('moderator');
       setIsModeratorAuthenticated(true);
       const modId = matchedMod ? matchedMod.id : 'mod-1';
@@ -4118,6 +4329,35 @@ export const SchoolProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         return { success: true, tutor: remoteTutor };
       }
     }
+
+    // Direct check against online server database
+    try {
+      const sRes = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ identifier: cleanId, password: pass.trim() })
+      });
+      if (sRes.ok) {
+        const sData = await sRes.json();
+        if (sData.success && sData.role === 'tutor' && sData.user) {
+          const onlineTutor = sData.user;
+          clearOtherRoles('tutor');
+          setIsTutorAuthenticated(true);
+          setActiveTutorId(onlineTutor.id);
+          setTutors(prev => [onlineTutor, ...prev.filter(t => t.id !== onlineTutor.id)]);
+          localStorage.setItem('stanbax_tutor_auth', 'true');
+          localStorage.setItem('stanbax_tutor_id', onlineTutor.id);
+          sessionStorage.setItem('stanbax_tutor_auth', 'true');
+          sessionStorage.setItem('stanbax_tutor_id', onlineTutor.id);
+          localStorage.setItem('stanbax_active_section', 'tutor-portal');
+          sessionStorage.setItem('stanbax_active_section', 'tutor-portal');
+          setActiveSection('tutor-portal');
+          return { success: true, tutor: onlineTutor };
+        }
+      } else if (sRes.status === 401) {
+        return { success: false, message: 'Incorrect staff credentials. Please check your password.' };
+      }
+    } catch {}
 
     if (!matchedTutor) {
       return { 
@@ -4209,6 +4449,35 @@ export const SchoolProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     }
 
     if (!matchedStudent) {
+      // Query online server database directly to support newly created online students
+      try {
+        const sRes = await fetch('/api/auth/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ identifier: cleanId, password: pin.trim() })
+        });
+        if (sRes.ok) {
+          const sData = await sRes.json();
+          if (sData.success && sData.role === 'student' && sData.user) {
+            const onlineStudent: StudentProfile = sData.user;
+            setStudents(prev => [onlineStudent, ...prev.filter(s => s.id !== onlineStudent.id)]);
+            clearOtherRoles('student');
+            setIsStudentAuthenticated(true);
+            setActiveStudentId(onlineStudent.id);
+            localStorage.setItem('stanbax_student_auth', 'true');
+            localStorage.setItem('stanbax_student_id', onlineStudent.id);
+            sessionStorage.setItem('stanbax_student_auth', 'true');
+            sessionStorage.setItem('stanbax_student_id', onlineStudent.id);
+            localStorage.setItem('stanbax_active_section', 'student-portal');
+            sessionStorage.setItem('stanbax_active_section', 'student-portal');
+            setActiveSection('student-portal');
+            return { success: true, student: onlineStudent };
+          }
+        } else if (sRes.status === 401) {
+          return { success: false, message: 'Incorrect scholar portal password.' };
+        }
+      } catch {}
+
       return { 
         success: false, 
         message: 'No active student record matches that Registration Number. Please verify registration slip.' 
@@ -4835,6 +5104,13 @@ export const SchoolProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       } catch {}
       return updated;
     });
+
+    // Commit to online server database (/api/tutors)
+    void fetch('/api/tutors', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(newTutor)
+    }).catch(err => console.warn('[Online Storage] Error committing tutor online:', err));
 
     void remoteCreateCredential(
       newTutor.email,

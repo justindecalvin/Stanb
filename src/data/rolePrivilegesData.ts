@@ -179,6 +179,7 @@ export const DEFAULT_MODERATORS: ModeratorProfile[] = [
     id: 'mod-1',
     name: 'Mr. Kehinde Badmus',
     email: 'moderator@stanbaxschools.edu.ng',
+    password: 'Moderator2025!',
     phone: '+234 802 345 6789',
     roleTitle: 'Chief Community & Communications Moderator',
     assignedSections: ['School Live Chat', 'Visitor Desk', 'Broadcasts & Gallery'],

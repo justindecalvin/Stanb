@@ -63,6 +63,7 @@ export const AdminRolePrivilegesTab: React.FC = () => {
   const [showAddModModal, setShowAddModModal] = useState(false);
   const [newModName, setNewModName] = useState('');
   const [newModEmail, setNewModEmail] = useState('');
+  const [newModPassword, setNewModPassword] = useState('Moderator2025!');
   const [newModPhone, setNewModPhone] = useState('');
   const [newModTitle, setNewModTitle] = useState('Community & Communications Moderator');
 
@@ -89,6 +90,7 @@ export const AdminRolePrivilegesTab: React.FC = () => {
     addModerator({
       name: newModName.trim(),
       email: newModEmail.trim(),
+      password: newModPassword.trim() || 'Moderator2025!',
       phone: newModPhone.trim() || '+234 800 000 0000',
       roleTitle: newModTitle.trim() || 'Community Moderator',
       assignedSections: ['School Live Chat', 'Visitor Desk', 'Broadcasts & Gallery'],
@@ -97,9 +99,10 @@ export const AdminRolePrivilegesTab: React.FC = () => {
 
     setNewModName('');
     setNewModEmail('');
+    setNewModPassword('Moderator2025!');
     setNewModPhone('');
     setShowAddModModal(false);
-    triggerSuccess('New Moderator appointed and registered in system!');
+    triggerSuccess('New Moderator appointed and saved online to server database!');
   };
 
   const triggerSuccess = (msg: string) => {
@@ -641,9 +644,23 @@ export const AdminRolePrivilegesTab: React.FC = () => {
                 />
               </div>
 
-              <div className="p-3 rounded-xl bg-amber-50 border border-amber-200 text-amber-900 text-[11px] space-y-1">
-                <span className="font-black block">Default System Access</span>
-                <span>The moderator will receive initial login credentials: username is their email prefix, default password is <code>Moderator2025!</code>.</span>
+              <div>
+                <label className="block font-bold text-stone-700 mb-1">Moderator Portal Password</label>
+                <input
+                  type="text"
+                  placeholder="Moderator2025!"
+                  value={newModPassword}
+                  onChange={e => setNewModPassword(e.target.value)}
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-stone-300 focus:outline-none focus:ring-2 focus:ring-blue-900 font-mono text-xs"
+                />
+                <span className="text-[10px] text-stone-500 mt-0.5 block">Leave as <code>Moderator2025!</code> or set a custom initial password.</span>
+              </div>
+
+              <div className="p-3 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-950 text-[11px] space-y-1">
+                <span className="font-black block flex items-center gap-1.5 text-emerald-800">
+                  <span>● Online Database Persistence Active</span>
+                </span>
+                <span>The moderator account is committed directly to the online server database (<code>/api/moderators</code>) and can sign in immediately on any browser or device.</span>
               </div>
 
               <div className="flex items-center justify-end gap-2 pt-2">

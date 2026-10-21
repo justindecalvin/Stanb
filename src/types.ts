@@ -78,6 +78,7 @@ export interface ModeratorProfile {
   id: string;
   name: string;
   email: string;
+  password?: string;
   phone: string;
   roleTitle: string;
   assignedSections: string[];

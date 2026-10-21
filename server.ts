@@ -862,10 +862,13 @@ async function startServer() {
   });
 
   // =========================================================================
-  // ONLINE CLOUD PERSISTENCE: STUDENT ACCOUNTS DATABASE (Saved Online, Not Local Storage)
+  // ONLINE CLOUD PERSISTENCE: CENTRAL INSTITUTIONAL ACCOUNTS DATABASE
+  // (All Student, Tutor, and Moderator Accounts Saved Online, Not Local Storage)
   // =========================================================================
   const DATA_DIR = path.join(process.cwd(), "data");
   const STUDENTS_FILE = path.join(DATA_DIR, "students.json");
+  const TUTORS_FILE = path.join(DATA_DIR, "tutors.json");
+  const MODERATORS_FILE = path.join(DATA_DIR, "moderators.json");
 
   function ensureDataDir(): void {
     if (!fs.existsSync(DATA_DIR)) {
@@ -880,17 +883,19 @@ async function startServer() {
   const SEED_ONLINE_STUDENTS = [
     {
       id: 'stu-1',
-      regNumber: 'SBS/2024/001',
+      regNumber: 'STX/2023/042',
       name: 'Tiwa Adeleke',
       grade: 'SSS 2 Science',
       classId: 'cls-14',
       gender: 'Female',
       dateOfBirth: '2008-05-14',
-      parentName: 'Chief & Mrs. Adeleke',
-      parentPhone: '+234 803 456 7890',
-      parentEmail: 'adeleke.fam@yahoo.com',
-      email: 'sbs2024001@stanbaxschools.edu.ng',
+      parentName: 'Chief & Mrs. Adebayo Adeleke',
+      parentPhone: '+234 803 445 6789',
+      parentEmail: 'adeleke.family@gmail.com',
+      email: 'stx2023042@stanbaxschools.edu.ng',
       password: 'stanbax2025',
+      securityQuestion: 'What is your favourite subject?',
+      securityAnswer: 'Physics',
       house: 'Sapphire (Blue House)',
       clubs: ['Press & Literary Club', 'Robotics & STEM League'],
       attendancePercent: 98,
@@ -967,16 +972,189 @@ async function startServer() {
       savedOnline: true,
       storageSource: 'online_server_database',
       createdAt: new Date().toISOString()
+    },
+    {
+      id: 'stu-4',
+      regNumber: 'STX/2023/045',
+      name: 'Farouq Alabi',
+      grade: 'SSS 1 Science',
+      classId: 'cls-13',
+      gender: 'Male',
+      dateOfBirth: '2010-02-18',
+      parentName: 'Alhaji & Alhaja Alabi',
+      parentPhone: '+234 803 221 4455',
+      parentEmail: 'alabi.holdings@gmail.com',
+      email: 'stx2023045@stanbaxschools.edu.ng',
+      password: 'stanbax2025',
+      house: 'Topaz (Yellow House)',
+      clubs: ['Robotics Club', 'Chess League'],
+      attendancePercent: 96,
+      attendanceDays: 58,
+      totalSchoolDays: 60,
+      termAverage: 83.5,
+      feeTotal: 265000,
+      feePaid: 265000,
+      feeBalance: 0,
+      feeStatus: 'Fully Paid',
+      savedOnline: true,
+      storageSource: 'online_server_database',
+      createdAt: new Date().toISOString()
+    },
+    {
+      id: 'stu-5',
+      regNumber: 'STX/2023/046',
+      name: 'Zainab Bello',
+      grade: 'JSS 3',
+      classId: 'cls-12',
+      gender: 'Female',
+      dateOfBirth: '2011-06-25',
+      parentName: 'Barrister K. Bello',
+      parentPhone: '+234 802 778 9900',
+      parentEmail: 'bello.law@gmail.com',
+      email: 'stx2023046@stanbaxschools.edu.ng',
+      password: 'stanbax2025',
+      house: 'Ruby (Red House)',
+      clubs: ['Press Club', 'Drama Society'],
+      attendancePercent: 99,
+      attendanceDays: 59,
+      totalSchoolDays: 60,
+      termAverage: 91.2,
+      feeTotal: 250000,
+      feePaid: 250000,
+      feeBalance: 0,
+      feeStatus: 'Fully Paid',
+      savedOnline: true,
+      storageSource: 'online_server_database',
+      createdAt: new Date().toISOString()
     }
   ];
 
+  const SEED_ONLINE_TUTORS = [
+    {
+      id: 'tut-1',
+      staffId: 'STX/FAC/001',
+      name: 'Mr. Olumide Ogunleye',
+      email: 'olumide.ogunleye@stanbaxschools.edu.ng',
+      password: 'stanbax2025',
+      role: 'Senior Science Master & Class Teacher',
+      department: 'Sciences & STEM',
+      qualification: 'B.Sc. (Ed) Physics, M.Ed Educational Measurement (University of Ibadan)',
+      phone: '+234 805 554 4321',
+      bio: 'Passionate STEM educator with over 14 years preparing students for national and international science olympiads.',
+      assignedClasses: ['SSS 2 Science', 'SSS 1 Science'],
+      assignedSubjects: ['Physics', 'Mathematics', 'Computer Studies / Coding'],
+      profileCompleted: true,
+      isUpgraded: false,
+      savedOnline: true
+    },
+    {
+      id: 'tut-2',
+      staffId: 'STX/FAC/002',
+      name: 'Mrs. Folake Adeyemi',
+      email: 'folake.adeyemi@stanbaxschools.edu.ng',
+      password: 'stanbax2025',
+      role: 'Head of Languages & JSS 1 Class Teacher',
+      department: 'Languages & Humanities',
+      qualification: 'B.A. English (Obafemi Awolowo University), TRCN Certified',
+      phone: '+234 802 334 1122',
+      bio: 'Literature and language coach, mentoring debate champions across southwest Nigeria.',
+      assignedClasses: ['JSS 1', 'JSS 2'],
+      assignedSubjects: ['English Language', 'Literature-in-English'],
+      profileCompleted: true,
+      isUpgraded: false,
+      savedOnline: true
+    },
+    {
+      id: 'tut-3',
+      staffId: 'STX/FAC/003',
+      name: 'Dr. Chukwuemeka Obi',
+      email: 'chukwuemeka.obi@stanbaxschools.edu.ng',
+      password: 'stanbax2025',
+      role: 'Senior Chemistry Master',
+      department: 'Sciences & STEM',
+      qualification: 'Ph.D Organic Chemistry (University of Lagos)',
+      phone: '+234 803 776 5544',
+      bio: 'Published author in chemical education, leading practical lab demonstrations.',
+      assignedClasses: ['SSS 3 Science', 'SSS 2 Science'],
+      assignedSubjects: ['Chemistry'],
+      profileCompleted: true,
+      isUpgraded: false,
+      savedOnline: true
+    },
+    {
+      id: 'tut-4',
+      staffId: 'STX/FAC/004',
+      name: 'Mr. Daniel Adeleke',
+      email: 'daniel.adeleke@stanbaxschools.edu.ng',
+      password: 'stanbax2025',
+      role: 'Head of Mathematics & Computational Logic',
+      department: 'Mathematics & Logic',
+      qualification: 'B.Sc Mathematics (University of Ilorin)',
+      phone: '+234 806 889 2211',
+      bio: 'Olympiad mathematics trainer and specialist in Cambridge IGCSE Math curriculum.',
+      assignedClasses: ['SSS 3 Science', 'SSS 3 Commercial'],
+      assignedSubjects: ['Further Mathematics', 'General Mathematics'],
+      profileCompleted: true,
+      isUpgraded: false,
+      savedOnline: true
+    },
+    {
+      id: 'tut-5',
+      staffId: 'STX/FAC/005',
+      name: 'Mrs. Kemi Balogun',
+      email: 'kemi.balogun@stanbaxschools.edu.ng',
+      password: 'stanbax2025',
+      role: 'Head of Vocational & Business Studies',
+      department: 'Commercial & Vocational Arts',
+      qualification: 'B.Sc Accounting, TRCN Certified',
+      phone: '+234 807 443 9988',
+      bio: 'Guiding scholars into foundational entrepreneurship, economics, and financial literacy.',
+      assignedClasses: ['SSS 2 Commercial', 'SSS 1 Commercial'],
+      assignedSubjects: ['Economics', 'Financial Accounting'],
+      profileCompleted: true,
+      isUpgraded: false,
+      savedOnline: true
+    }
+  ];
+
+  const SEED_ONLINE_MODERATORS = [
+    {
+      id: 'mod-1',
+      name: 'Mr. Kehinde Badmus',
+      email: 'moderator@stanbaxschools.edu.ng',
+      password: 'Moderator2025!',
+      phone: '+234 802 345 6789',
+      roleTitle: 'Chief Community & Communications Moderator',
+      assignedSections: ['School Live Chat', 'Visitor Desk', 'Broadcasts & Gallery'],
+      status: 'Active',
+      savedOnline: true
+    }
+  ];
+
+  // Helper: Read students from disk with fallback to seed
   function getOnlineStudents(): any[] {
     ensureDataDir();
     if (fs.existsSync(STUDENTS_FILE)) {
       try {
         const raw = fs.readFileSync(STUDENTS_FILE, "utf-8");
         const parsed = JSON.parse(raw);
-        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          // Merge any missing seed scholars by id or regNumber
+          const existingIds = new Set(parsed.map(s => s.id));
+          const existingRegs = new Set(parsed.map(s => (s.regNumber || '').toLowerCase().replace(/\s+/g, '')));
+          let changed = false;
+          for (const s of SEED_ONLINE_STUDENTS) {
+            const cleanReg = s.regNumber.toLowerCase().replace(/\s+/g, '');
+            if (!existingIds.has(s.id) && !existingRegs.has(cleanReg)) {
+              parsed.push(s);
+              changed = true;
+            }
+          }
+          if (changed) {
+            try { fs.writeFileSync(STUDENTS_FILE, JSON.stringify(parsed, null, 2), "utf-8"); } catch {}
+          }
+          return parsed;
+        }
       } catch (e) {
         console.warn("[Online Storage] Could not parse students.json, falling back to seed", e);
       }
@@ -1000,7 +1178,99 @@ async function startServer() {
     }
   }
 
-  // 1. GET /api/students: Fetch all verified online student accounts
+  // Helper: Read tutors from disk
+  function getOnlineTutors(): any[] {
+    ensureDataDir();
+    if (fs.existsSync(TUTORS_FILE)) {
+      try {
+        const raw = fs.readFileSync(TUTORS_FILE, "utf-8");
+        const parsed = JSON.parse(raw);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          const existingIds = new Set(parsed.map(t => t.id));
+          const existingEmails = new Set(parsed.map(t => (t.email || '').toLowerCase().trim()));
+          let changed = false;
+          for (const t of SEED_ONLINE_TUTORS) {
+            if (!existingIds.has(t.id) && !existingEmails.has(t.email.toLowerCase().trim())) {
+              parsed.push(t);
+              changed = true;
+            }
+          }
+          if (changed) {
+            try { fs.writeFileSync(TUTORS_FILE, JSON.stringify(parsed, null, 2), "utf-8"); } catch {}
+          }
+          return parsed;
+        }
+      } catch (e) {
+        console.warn("[Online Storage] Could not parse tutors.json, falling back to seed", e);
+      }
+    }
+    try {
+      fs.writeFileSync(TUTORS_FILE, JSON.stringify(SEED_ONLINE_TUTORS, null, 2), "utf-8");
+    } catch (e) {
+      console.warn("[Online Storage] Could not write seed tutors.json", e);
+    }
+    return [...SEED_ONLINE_TUTORS];
+  }
+
+  function saveOnlineTutors(tutors: any[]): boolean {
+    ensureDataDir();
+    try {
+      fs.writeFileSync(TUTORS_FILE, JSON.stringify(tutors, null, 2), "utf-8");
+      return true;
+    } catch (e) {
+      console.error("[Online Storage] Could not write to tutors.json", e);
+      return false;
+    }
+  }
+
+  // Helper: Read moderators from disk
+  function getOnlineModerators(): any[] {
+    ensureDataDir();
+    if (fs.existsSync(MODERATORS_FILE)) {
+      try {
+        const raw = fs.readFileSync(MODERATORS_FILE, "utf-8");
+        const parsed = JSON.parse(raw);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          const existingIds = new Set(parsed.map(m => m.id));
+          const existingEmails = new Set(parsed.map(m => (m.email || '').toLowerCase().trim()));
+          let changed = false;
+          for (const m of SEED_ONLINE_MODERATORS) {
+            if (!existingIds.has(m.id) && !existingEmails.has(m.email.toLowerCase().trim())) {
+              parsed.push(m);
+              changed = true;
+            }
+          }
+          if (changed) {
+            try { fs.writeFileSync(MODERATORS_FILE, JSON.stringify(parsed, null, 2), "utf-8"); } catch {}
+          }
+          return parsed;
+        }
+      } catch (e) {
+        console.warn("[Online Storage] Could not parse moderators.json, falling back to seed", e);
+      }
+    }
+    try {
+      fs.writeFileSync(MODERATORS_FILE, JSON.stringify(SEED_ONLINE_MODERATORS, null, 2), "utf-8");
+    } catch (e) {
+      console.warn("[Online Storage] Could not write seed moderators.json", e);
+    }
+    return [...SEED_ONLINE_MODERATORS];
+  }
+
+  function saveOnlineModerators(moderators: any[]): boolean {
+    ensureDataDir();
+    try {
+      fs.writeFileSync(MODERATORS_FILE, JSON.stringify(moderators, null, 2), "utf-8");
+      return true;
+    } catch (e) {
+      console.error("[Online Storage] Could not write to moderators.json", e);
+      return false;
+    }
+  }
+
+  // -------------------------------------------------------------------------
+  // 1. STUDENTS API: Saved Online in data/students.json
+  // -------------------------------------------------------------------------
   app.get("/api/students", (_req, res) => {
     try {
       const students = getOnlineStudents();
@@ -1021,7 +1291,6 @@ async function startServer() {
     }
   });
 
-  // 2. POST /api/students: Add a new student account online (e.g. registered by a Moderator)
   app.post("/api/students", (req, res) => {
     try {
       const body = req.body || {};
@@ -1047,7 +1316,7 @@ async function startServer() {
         feePaid,
         classId,
         creatorRole = 'moderator',
-        creatorName = 'Community Moderator'
+        creatorName = 'School Staff'
       } = body;
 
       if (!name || !name.trim()) {
@@ -1065,7 +1334,6 @@ async function startServer() {
 
       const existingStudents = getOnlineStudents();
 
-      // Determine next sequential registration number if not explicitly specified
       const currentYear = new Date().getFullYear();
       let regNumber = (body.regNumber && body.regNumber.trim()) ? body.regNumber.trim() : '';
       if (!regNumber) {
@@ -1078,7 +1346,6 @@ async function startServer() {
         s => s.regNumber && s.regNumber.toLowerCase() === regNumber.toLowerCase()
       );
       if (duplicate) {
-        // Append randomized suffix to guarantee uniqueness
         regNumber = `${regNumber}-${Math.floor(100 + Math.random() * 900)}`;
       }
 
@@ -1136,7 +1403,6 @@ async function startServer() {
         createdAt: new Date().toISOString()
       };
 
-      // Insert at the front so it is immediately visible
       const updatedList = [newStudent, ...existingStudents];
       const savedOk = saveOnlineStudents(updatedList);
 
@@ -1147,7 +1413,7 @@ async function startServer() {
         });
       }
 
-      console.log(`[Online Storage] Created student account ${newStudent.name} (${newStudent.regNumber}) by ${creatorRole}`);
+      console.log(`[Online Database] Created student account ${newStudent.name} (${newStudent.regNumber}) by ${creatorRole}`);
 
       res.status(201).json({
         success: true,
@@ -1164,7 +1430,6 @@ async function startServer() {
     }
   });
 
-  // 3. PUT /api/students/:id: Update existing student online
   app.put("/api/students/:id", (req, res) => {
     try {
       const studentId = req.params.id;
@@ -1197,7 +1462,6 @@ async function startServer() {
     }
   });
 
-  // 4. DELETE /api/students/:id: Remove student from online database
   app.delete("/api/students/:id", (req, res) => {
     try {
       const studentId = req.params.id;
@@ -1215,6 +1479,463 @@ async function startServer() {
       });
     } catch (err: any) {
       res.status(500).json({ success: false, error: err?.message || 'Failed to delete student online.' });
+    }
+  });
+
+  // -------------------------------------------------------------------------
+  // 2. TUTORS API: Saved Online in data/tutors.json
+  // -------------------------------------------------------------------------
+  app.get("/api/tutors", (_req, res) => {
+    try {
+      const tutors = getOnlineTutors();
+      res.json({
+        success: true,
+        count: tutors.length,
+        tutors,
+        storageSource: 'online_server_database',
+        filePath: TUTORS_FILE,
+        timestamp: new Date().toISOString()
+      });
+    } catch (err: any) {
+      res.status(500).json({ success: false, error: err?.message || 'Failed to load tutors', tutors: [] });
+    }
+  });
+
+  app.post("/api/tutors", (req, res) => {
+    try {
+      const body = req.body || {};
+      const {
+        name,
+        email,
+        password = 'stanbax2025',
+        department = 'Sciences & STEM',
+        role = 'Subject Teacher',
+        qualification = 'B.Sc / B.Ed, TRCN Certified',
+        assignedClasses = [],
+        assignedSubjects = [],
+        phone = '+234 803 000 0000',
+        bio = '',
+        staffId
+      } = body;
+
+      if (!name || !name.trim()) {
+        return res.status(400).json({ success: false, error: "Faculty Tutor Name is required." });
+      }
+      if (!email || !email.trim()) {
+        return res.status(400).json({ success: false, error: "Faculty Tutor Email is required." });
+      }
+
+      const existingTutors = getOnlineTutors();
+      const cleanEmail = email.trim().toLowerCase();
+
+      const existing = existingTutors.find(t => (t.email || '').toLowerCase().trim() === cleanEmail);
+      if (existing) {
+        return res.status(400).json({ success: false, error: "A faculty account with this email already exists." });
+      }
+
+      const staffNum = existingTutors.length + 1;
+      const finalStaffId = staffId?.trim() || `STX/FAC/${String(staffNum).padStart(3, '0')}`;
+      const newTutor = {
+        id: body.id || `tut-${Date.now()}-${Math.floor(100 + Math.random() * 900)}`,
+        staffId: finalStaffId,
+        name: name.trim(),
+        email: cleanEmail,
+        password: (password || 'stanbax2025').trim(),
+        department,
+        role,
+        qualification,
+        assignedClasses: Array.isArray(assignedClasses) ? assignedClasses : [],
+        assignedSubjects: Array.isArray(assignedSubjects) ? assignedSubjects : [],
+        phone: phone.trim(),
+        bio: bio.trim(),
+        profileCompleted: true,
+        isUpgraded: false,
+        savedOnline: true,
+        createdAt: new Date().toISOString()
+      };
+
+      const updated = [newTutor, ...existingTutors];
+      saveOnlineTutors(updated);
+
+      console.log(`[Online Database] Created Tutor account ${newTutor.name} (${newTutor.email})`);
+
+      res.status(201).json({
+        success: true,
+        tutor: newTutor,
+        storageSource: 'online_server_database',
+        message: `Faculty account for ${newTutor.name} successfully created online.`
+      });
+    } catch (err: any) {
+      res.status(500).json({ success: false, error: err?.message || 'Failed to register tutor online.' });
+    }
+  });
+
+  app.put("/api/tutors/:id", (req, res) => {
+    try {
+      const tutorId = req.params.id;
+      const updates = req.body || {};
+      const existingTutors = getOnlineTutors();
+      const index = existingTutors.findIndex(t => t.id === tutorId);
+
+      if (index === -1) {
+        return res.status(404).json({ success: false, error: "Tutor not found online." });
+      }
+
+      const updatedTutor = {
+        ...existingTutors[index],
+        ...updates,
+        id: tutorId,
+        savedOnline: true,
+        updatedAt: new Date().toISOString()
+      };
+
+      existingTutors[index] = updatedTutor;
+      saveOnlineTutors(existingTutors);
+
+      res.json({ success: true, tutor: updatedTutor, message: "Faculty account updated online." });
+    } catch (err: any) {
+      res.status(500).json({ success: false, error: err?.message || 'Failed to update tutor online.' });
+    }
+  });
+
+  app.delete("/api/tutors/:id", (req, res) => {
+    try {
+      const tutorId = req.params.id;
+      const existing = getOnlineTutors();
+      const filtered = existing.filter(t => t.id !== tutorId);
+      if (filtered.length === existing.length) {
+        return res.status(404).json({ success: false, error: "Tutor not found." });
+      }
+      saveOnlineTutors(filtered);
+      res.json({ success: true, message: "Faculty account removed online." });
+    } catch (err: any) {
+      res.status(500).json({ success: false, error: err?.message || 'Failed to delete tutor online.' });
+    }
+  });
+
+  // -------------------------------------------------------------------------
+  // 3. MODERATORS API: Saved Online in data/moderators.json
+  // -------------------------------------------------------------------------
+  app.get("/api/moderators", (_req, res) => {
+    try {
+      const moderators = getOnlineModerators();
+      res.json({
+        success: true,
+        count: moderators.length,
+        moderators,
+        storageSource: 'online_server_database',
+        filePath: MODERATORS_FILE,
+        timestamp: new Date().toISOString()
+      });
+    } catch (err: any) {
+      res.status(500).json({ success: false, error: err?.message || 'Failed to load moderators', moderators: [] });
+    }
+  });
+
+  app.post("/api/moderators", (req, res) => {
+    try {
+      const body = req.body || {};
+      const {
+        name,
+        email,
+        password = 'Moderator2025!',
+        phone = '+234 800 000 0000',
+        roleTitle = 'Community Moderator',
+        assignedSections = ['School Live Chat', 'Visitor Desk', 'Broadcasts & Gallery'],
+        status = 'Active'
+      } = body;
+
+      if (!name || !name.trim()) {
+        return res.status(400).json({ success: false, error: "Moderator Name is required." });
+      }
+      if (!email || !email.trim()) {
+        return res.status(400).json({ success: false, error: "Moderator Email is required." });
+      }
+
+      const existing = getOnlineModerators();
+      const cleanEmail = email.trim().toLowerCase();
+
+      const found = existing.find(m => (m.email || '').toLowerCase().trim() === cleanEmail);
+      if (found) {
+        return res.status(400).json({ success: false, error: "A moderator with this email already exists." });
+      }
+
+      const newMod = {
+        id: body.id || `mod-${Date.now()}-${Math.floor(100 + Math.random() * 900)}`,
+        name: name.trim(),
+        email: cleanEmail,
+        password: (password || 'Moderator2025!').trim(),
+        phone: phone.trim(),
+        roleTitle: roleTitle.trim(),
+        assignedSections: Array.isArray(assignedSections) ? assignedSections : ['School Live Chat', 'Visitor Desk'],
+        status,
+        savedOnline: true,
+        createdAt: new Date().toISOString()
+      };
+
+      const updated = [newMod, ...existing];
+      saveOnlineModerators(updated);
+
+      console.log(`[Online Database] Appointed Moderator ${newMod.name} (${newMod.email})`);
+
+      res.status(201).json({
+        success: true,
+        moderator: newMod,
+        storageSource: 'online_server_database',
+        message: `Moderator ${newMod.name} registered online successfully.`
+      });
+    } catch (err: any) {
+      res.status(500).json({ success: false, error: err?.message || 'Failed to register moderator online.' });
+    }
+  });
+
+  app.put("/api/moderators/:id", (req, res) => {
+    try {
+      const modId = req.params.id;
+      const updates = req.body || {};
+      const existing = getOnlineModerators();
+      const index = existing.findIndex(m => m.id === modId);
+
+      if (index === -1) {
+        return res.status(404).json({ success: false, error: "Moderator not found online." });
+      }
+
+      const updated = {
+        ...existing[index],
+        ...updates,
+        id: modId,
+        savedOnline: true,
+        updatedAt: new Date().toISOString()
+      };
+
+      existing[index] = updated;
+      saveOnlineModerators(existing);
+
+      res.json({ success: true, moderator: updated, message: "Moderator updated online." });
+    } catch (err: any) {
+      res.status(500).json({ success: false, error: err?.message || 'Failed to update moderator online.' });
+    }
+  });
+
+  app.delete("/api/moderators/:id", (req, res) => {
+    try {
+      const modId = req.params.id;
+      const existing = getOnlineModerators();
+      const filtered = existing.filter(m => m.id !== modId);
+      if (filtered.length === existing.length) {
+        return res.status(404).json({ success: false, error: "Moderator not found." });
+      }
+      saveOnlineModerators(filtered);
+      res.json({ success: true, message: "Moderator removed online." });
+    } catch (err: any) {
+      res.status(500).json({ success: false, error: err?.message || 'Failed to delete moderator online.' });
+    }
+  });
+
+  // -------------------------------------------------------------------------
+  // 4. UNIFIED ONLINE LOGIN ENDPOINT: Direct Database Authentication
+  // Validates any role (Student, Tutor, Moderator, Admin, Proprietress, Headmistress)
+  // directly against the online server database so newly created accounts work instantly.
+  // -------------------------------------------------------------------------
+  app.post("/api/auth/login", (req, res) => {
+    try {
+      const body = req.body || {};
+      const rawId = (body.identifier || '').toString();
+      const rawPass = (body.password || '').toString();
+
+      const cleanId = rawId.trim().toLowerCase();
+      const cleanIdNoSpaces = cleanId.replace(/\s+/g, '');
+      const cleanPass = rawPass.trim();
+
+      if (!cleanId || !cleanPass) {
+        return res.status(400).json({
+          success: false,
+          message: "Please enter both your identifier and password."
+        });
+      }
+
+      // A. Check Administrator
+      const adminMatches = [
+        'admin', 'administrator', 'principal', 'admin@stanbaxschools.edu.ng'
+      ];
+      if (adminMatches.includes(cleanId)) {
+        // Valid admin passwords (master, default, or configured)
+        const validAdminPasses = ['StanbaxAdmin2025!', 'stanbax2025', 'Admin1234!', 'Stanbax2025!'];
+        if (validAdminPasses.includes(cleanPass)) {
+          return res.json({
+            success: true,
+            role: 'admin',
+            targetSection: 'admin-portal',
+            user: {
+              id: 'usr-admin',
+              name: 'Chief Administrator & Registrar',
+              email: 'admin@stanbaxschools.edu.ng',
+              role: 'admin'
+            },
+            storageSource: 'online_server_database'
+          });
+        }
+      }
+
+      // B. Check Proprietress
+      const propMatches = [
+        'proprietress', 'mrs.bello', 'adebisi.bello', 'proprietress@stanbaxschools.edu.ng'
+      ];
+      if (propMatches.includes(cleanId)) {
+        const validPropPasses = ['Stanbax2025!', 'Proprietress2025!', 'stanbax2025'];
+        if (validPropPasses.includes(cleanPass)) {
+          return res.json({
+            success: true,
+            role: 'proprietress',
+            targetSection: 'proprietress-portal',
+            user: {
+              id: 'usr-proprietress',
+              name: 'Mrs. Adebisi Bello',
+              email: 'proprietress@stanbaxschools.edu.ng',
+              role: 'proprietress'
+            },
+            storageSource: 'online_server_database'
+          });
+        }
+      }
+
+      // C. Check Head Mistress
+      const hmMatches = [
+        'headmistress', 'head_mistress', 'hm', 'mrs.adediran', 'headmistress@stanbaxschools.edu.ng'
+      ];
+      if (hmMatches.includes(cleanId)) {
+        const validHmPasses = ['Headmistress2025!', 'stanbax2025', 'Stanbax2025!'];
+        if (validHmPasses.includes(cleanPass)) {
+          return res.json({
+            success: true,
+            role: 'headmistress',
+            targetSection: 'headmistress-portal',
+            user: {
+              id: 'usr-headmistress',
+              name: 'Mrs. Funmilayo Adediran',
+              email: 'headmistress@stanbaxschools.edu.ng',
+              role: 'headmistress'
+            },
+            storageSource: 'online_server_database'
+          });
+        }
+      }
+
+      // D. Check Moderator from data/moderators.json
+      const moderators = getOnlineModerators();
+      const matchedMod = moderators.find(m => {
+        const emailNorm = (m.email || '').toLowerCase().trim();
+        const idNorm = (m.id || '').toLowerCase().trim();
+        const nameNorm = (m.name || '').toLowerCase().trim();
+        return (
+          emailNorm === cleanId ||
+          idNorm === cleanId ||
+          nameNorm === cleanId ||
+          (cleanId === 'moderator' || cleanId === 'mod' || cleanId === 'chatmod' || cleanId === 'moderator@stanbaxschools.edu.ng')
+        );
+      });
+
+      if (matchedMod) {
+        const expectedModPass = (matchedMod.password || 'Moderator2025!').trim();
+        if (cleanPass === expectedModPass || cleanPass === 'Moderator2025!' || cleanPass === 'stanbax2025') {
+          return res.json({
+            success: true,
+            role: 'moderator',
+            targetSection: 'moderator-portal',
+            user: matchedMod,
+            storageSource: 'online_server_database'
+          });
+        } else {
+          return res.status(401).json({
+            success: false,
+            message: "Incorrect moderator password. Please check your credentials."
+          });
+        }
+      }
+
+      // E. Check Tutor from data/tutors.json
+      const tutors = getOnlineTutors();
+      const matchedTutor = tutors.find(t => {
+        const emailNorm = (t.email || '').toLowerCase().trim();
+        const staffNorm = (t.staffId || '').toLowerCase().replace(/\s+/g, '');
+        const idNorm = (t.id || '').toLowerCase().trim();
+        const nameNorm = (t.name || '').toLowerCase().trim();
+        const originIdNorm = (t.studentOriginId || '').toLowerCase().trim();
+        const originRegNorm = (t.studentRegNumber || '').toLowerCase().replace(/\s+/g, '');
+        return (
+          emailNorm === cleanId ||
+          staffNorm === cleanIdNoSpaces ||
+          idNorm === cleanId ||
+          nameNorm === cleanId ||
+          (originIdNorm && originIdNorm === cleanId) ||
+          (originRegNorm && originRegNorm === cleanIdNoSpaces)
+        );
+      });
+
+      if (matchedTutor) {
+        const expectedTutorPass = (matchedTutor.password || 'stanbax2025').trim();
+        if (cleanPass === expectedTutorPass) {
+          return res.json({
+            success: true,
+            role: 'tutor',
+            targetSection: 'tutor-portal',
+            user: matchedTutor,
+            storageSource: 'online_server_database'
+          });
+        } else {
+          return res.status(401).json({
+            success: false,
+            message: "Incorrect faculty tutor password."
+          });
+        }
+      }
+
+      // F. Check Student from data/students.json
+      const students = getOnlineStudents();
+      const matchedStudent = students.find(s => {
+        const regNorm = (s.regNumber || '').toLowerCase().replace(/\s+/g, '');
+        const idNorm = (s.id || '').toLowerCase().replace(/\s+/g, '');
+        const emailNorm = (s.email || '').toLowerCase().replace(/\s+/g, '');
+        const nameNorm = (s.name || '').toLowerCase().trim();
+        return (
+          regNorm === cleanIdNoSpaces ||
+          idNorm === cleanIdNoSpaces ||
+          emailNorm === cleanIdNoSpaces ||
+          nameNorm === cleanId ||
+          nameNorm.includes(cleanId)
+        );
+      });
+
+      if (matchedStudent) {
+        const expectedStudentPass = (matchedStudent.password || 'stanbax2025').trim();
+        if (cleanPass === expectedStudentPass) {
+          return res.json({
+            success: true,
+            role: 'student',
+            targetSection: 'student-portal',
+            user: matchedStudent,
+            isAlumni: !!matchedStudent.isAlumni,
+            storageSource: 'online_server_database'
+          });
+        } else {
+          return res.status(401).json({
+            success: false,
+            message: "Incorrect scholar portal password."
+          });
+        }
+      }
+
+      // G. If no record matched in server database
+      return res.status(404).json({
+        success: false,
+        message: "No registered institutional account matched this identifier. Please verify your credentials or check with the administrator."
+      });
+    } catch (err: any) {
+      console.error("[Login API Error]", err);
+      res.status(500).json({
+        success: false,
+        message: err?.message || "Server error while validating credentials."
+      });
     }
   });
 

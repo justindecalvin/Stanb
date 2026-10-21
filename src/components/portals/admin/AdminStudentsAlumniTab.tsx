@@ -14,13 +14,20 @@ import {
   ChevronRight, 
   PlusCircle, 
   BookOpen, 
-  ArrowRight,
-  Filter,
-  Database,
-  FileText,
-  Clock,
-  Trash2,
-  Check
+  ArrowRight, 
+  Filter, 
+  Database, 
+  FileText, 
+  Clock, 
+  Trash2, 
+  Check,
+  UserPlus,
+  Globe,
+  RefreshCw,
+  Copy,
+  Lock,
+  Eye,
+  EyeOff
 } from '../../RealIcons';
 import { isRemoteEnabled } from '../../../lib/supabase';
 import { NetlifyCloudSyncModal } from './NetlifyCloudSyncModal';
@@ -29,6 +36,10 @@ import { CustomResultsManagerModal } from './CustomResultsManagerModal';
 export const AdminStudentsAlumniTab: React.FC = () => {
   const { 
     students, 
+    classes,
+    addStudent,
+    syncOnlineStudentsNow,
+    onlineStudentsSynced,
     toggleStudentAlumni, 
     upgradeStudentToTutor, 
     createTutorAccount,
@@ -48,9 +59,31 @@ export const AdminStudentsAlumniTab: React.FC = () => {
   const [errorMsg, setErrorMsg] = useState('');
   const [showSyncModal, setShowSyncModal] = useState(false);
   const [studentForCustomResults, setStudentForCustomResults] = useState<StudentProfile | null>(null);
+  const [isRefreshingOnline, setIsRefreshingOnline] = useState(false);
 
   // Upgrade confirmation modal
   const [studentToUpgrade, setStudentToUpgrade] = useState<StudentProfile | null>(null);
+
+  // Admin New Scholar Registration Modal state
+  const [showRegisterScholarModal, setShowRegisterScholarModal] = useState(false);
+  const [isSubmittingScholar, setIsSubmittingScholar] = useState(false);
+  const [createdScholar, setCreatedScholar] = useState<StudentProfile | null>(null);
+  const [scholarCopiedField, setScholarCopiedField] = useState<string | null>(null);
+
+  // Admin Scholar Form fields
+  const [formName, setFormName] = useState('');
+  const [formGrade, setFormGrade] = useState('SSS 1 Science');
+  const [formGender, setFormGender] = useState<'Male' | 'Female'>('Male');
+  const [formDateOfBirth, setFormDateOfBirth] = useState('2010-04-15');
+  const [formHouse, setFormHouse] = useState('Sapphire (Blue House)');
+  const [formParentName, setFormParentName] = useState('');
+  const [formParentPhone, setFormParentPhone] = useState('');
+  const [formParentEmail, setFormParentEmail] = useState('');
+  const [formAddress, setFormAddress] = useState('Ibadan, Oyo State');
+  const [formPassword, setFormPassword] = useState('stanbax2025');
+  const [formCustomRegNumber, setFormCustomRegNumber] = useState('');
+  const [formCalvinTier, setFormCalvinTier] = useState<'regular' | 'premium'>('premium');
+  const [formFeeDeposit, setFormFeeDeposit] = useState('265000');
 
   // New tutor modal
   const [showNewTutorModal, setShowNewTutorModal] = useState(false);
@@ -157,6 +190,96 @@ export const AdminStudentsAlumniTab: React.FC = () => {
     setTimeout(() => setSuccessMsg(''), 5000);
   };
 
+  const handleRefreshOnline = async () => {
+    setIsRefreshingOnline(true);
+    try {
+      await syncOnlineStudentsNow();
+      setSuccessMsg('Synchronized successfully with online server database (/api/students).');
+    } catch {
+      setErrorMsg('Could not refresh online scholars from server.');
+    } finally {
+      setIsRefreshingOnline(false);
+      setTimeout(() => { setSuccessMsg(''); setErrorMsg(''); }, 4000);
+    }
+  };
+
+  const handleCopyScholarInfo = (text: string, id: string) => {
+    navigator.clipboard.writeText(text);
+    setScholarCopiedField(id);
+    setTimeout(() => setScholarCopiedField(null), 2500);
+  };
+
+  const handleRegisterScholarOnline = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!formName.trim() || !formParentName.trim() || !formParentPhone.trim()) {
+      setErrorMsg('Please complete all required fields: Scholar Full Name, Parent Name, and Parent Phone.');
+      setTimeout(() => setErrorMsg(''), 4500);
+      return;
+    }
+
+    setIsSubmittingScholar(true);
+    try {
+      const targetClass = classes.find(c => c.name === formGrade);
+      const feeTotal = targetClass?.tuitionPerTerm || 265000;
+      const feePaid = Number(formFeeDeposit) || 0;
+      const feeBalance = Math.max(0, feeTotal - feePaid);
+      const feeStatus = feeBalance === 0 ? 'Fully Paid' : feePaid > 0 ? 'Partially Paid' : 'Outstanding';
+
+      const res = await addStudent({
+        name: formName.trim(),
+        grade: formGrade,
+        classId: targetClass?.id,
+        gender: formGender,
+        dateOfBirth: formDateOfBirth,
+        house: formHouse,
+        parentName: formParentName.trim(),
+        parentPhone: formParentPhone.trim(),
+        parentEmail: formParentEmail.trim(),
+        address: formAddress.trim(),
+        password: formPassword.trim() || 'stanbax2025',
+        regNumber: formCustomRegNumber.trim() || undefined,
+        feeTotal,
+        feePaid,
+        feeBalance,
+        feeStatus,
+        attendancePercent: 100,
+        attendanceDays: 0,
+        totalSchoolDays: 60,
+        termAverage: 0,
+        calvinAiAccess: {
+          active: true,
+          tier: formCalvinTier,
+          tokenCode: `CALVIN-${Date.now().toString().slice(-6)}`,
+          activatedAt: new Date().toISOString(),
+          expiresAt: new Date(Date.now() + 365 * 24 * 3600 * 1000).toISOString(),
+          durationHours: 8760,
+          questionsCount: 0
+        }
+      }, 'admin', 'Chief Administrator');
+
+      if (res.success && res.student) {
+        setCreatedScholar(res.student);
+        setShowRegisterScholarModal(false);
+        setSuccessMsg(`Scholar ${res.student.name} (${res.student.regNumber}) registered and saved permanently online to the server database.`);
+        setFormName('');
+        setFormParentName('');
+        setFormParentPhone('');
+        setFormParentEmail('');
+        setFormAddress('');
+        setFormCustomRegNumber('');
+        setTimeout(() => setSuccessMsg(''), 6000);
+      } else {
+        setErrorMsg(res.message || 'Could not register scholar account online.');
+        setTimeout(() => setErrorMsg(''), 5000);
+      }
+    } catch (err: any) {
+      setErrorMsg(err?.message || 'Failed to commit scholar account online.');
+      setTimeout(() => setErrorMsg(''), 5000);
+    } finally {
+      setIsSubmittingScholar(false);
+    }
+  };
+
   const activeCount = students.filter(s => !s.isAlumni).length;
   const alumniCount = students.filter(s => s.isAlumni).length;
   const upgradedCount = students.filter(s => s.isUpgradedTutor).length;
@@ -169,14 +292,38 @@ export const AdminStudentsAlumniTab: React.FC = () => {
         <div>
           <div className="flex items-center gap-2 text-blue-950">
             <GraduationCap className="w-6 h-6 text-amber-500" />
-            <h2 className="text-lg sm:text-xl font-black">Scholars, Alumni & Privilege Management</h2>
+            <h2 className="text-lg sm:text-xl font-black">Scholars, Admissions & Faculty Accounts</h2>
           </div>
           <p className="text-xs text-slate-500 mt-1 max-w-2xl">
-            Review and approve new alumni account requests, manage graduated scholar records, upload custom or external examination results, and promote scholars to faculty tutors.
+            Register new scholars directly online, manage active admissions and alumni records, create faculty tutor accounts, and configure permissions. All accounts save directly to the central online database.
           </p>
         </div>
 
         <div className="flex flex-wrap items-center gap-2 self-start md:self-auto shrink-0">
+          <button
+            type="button"
+            onClick={handleRefreshOnline}
+            disabled={isRefreshingOnline}
+            className="px-3.5 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 text-xs font-bold transition flex items-center gap-2 cursor-pointer border border-slate-300 disabled:opacity-50"
+            title="Synchronize and verify with server database"
+          >
+            <RefreshCw className={`w-3.5 h-3.5 ${isRefreshingOnline ? 'animate-spin text-blue-900' : 'text-slate-600'}`} />
+            <span>{isRefreshingOnline ? 'Syncing...' : 'Sync Server'}</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => {
+              setCreatedScholar(null);
+              setShowRegisterScholarModal(true);
+            }}
+            className="px-4 py-2.5 rounded-xl bg-amber-400 hover:bg-amber-500 text-neutral-950 text-xs font-black shadow-md cursor-pointer transition flex items-center gap-2"
+            id="btn-admin-register-scholar"
+          >
+            <UserPlus className="w-4 h-4 text-neutral-950" />
+            <span>Register New Scholar</span>
+          </button>
+
           <button
             onClick={() => setStudentForCustomResults(students[0] || null)}
             className="px-4 py-2.5 rounded-xl bg-amber-50 hover:bg-amber-100 text-amber-950 border border-amber-300 text-xs font-bold shadow-xs cursor-pointer transition flex items-center gap-2"
@@ -197,29 +344,33 @@ export const AdminStudentsAlumniTab: React.FC = () => {
         </div>
       </div>
 
-      {/* Netlify Single Browser Mode Alert */}
-      {!isRemoteEnabled() && (
-        <div className="p-4 rounded-2xl bg-amber-50 border border-amber-300 text-amber-950 flex flex-col sm:flex-row sm:items-center justify-between gap-3 animate-fade-in shadow-2xs">
-          <div className="flex items-start gap-3">
-            <Database className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
-            <div>
-              <span className="font-bold text-xs block text-amber-900">
-                Single-Browser Storage Active (Netlify Deployment Notice)
+      {/* Online Server Database Persistence Banner */}
+      <div className="p-4 rounded-2xl bg-emerald-50 border border-emerald-300 text-emerald-950 flex flex-col sm:flex-row sm:items-center justify-between gap-3 animate-fade-in shadow-2xs">
+        <div className="flex items-start gap-3">
+          <Globe className="w-5 h-5 text-emerald-600 shrink-0 mt-0.5" />
+          <div>
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="font-bold text-xs text-emerald-950">
+                Online Central Database Active (<code className="text-emerald-800 font-mono font-bold">/api/students</code> & <code className="text-emerald-800 font-mono font-bold">/api/tutors</code>)
               </span>
-              <p className="text-[11px] text-amber-800 leading-snug mt-0.5">
-                Scholars registered in this browser are stored in local memory only. To make new student registrations visible across every other browser, phone, and computer, connect your free Supabase database in Netlify Environment Variables.
-              </p>
+              <span className="text-[10px] bg-emerald-600 text-white font-black px-2 py-0.5 rounded-full uppercase tracking-wider">
+                Permanent Server Persistence
+              </span>
             </div>
+            <p className="text-[11px] text-emerald-800 leading-snug mt-1">
+              All accounts created by Administrators and Moderators are committed directly to the central online server database. Credentials persist permanently worldwide across all browsers, phones, and computers without relying on local storage.
+            </p>
           </div>
-          <button
-            type="button"
-            onClick={() => setShowSyncModal(true)}
-            className="px-3.5 py-1.5 rounded-xl bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs shrink-0 cursor-pointer shadow-xs self-start sm:self-auto"
-          >
-            How to Sync Across Devices
-          </button>
         </div>
-      )}
+        <button
+          type="button"
+          onClick={handleRefreshOnline}
+          className="px-3.5 py-1.5 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white font-bold text-xs shrink-0 cursor-pointer shadow-xs self-start sm:self-auto flex items-center gap-1.5"
+        >
+          <RefreshCw className={`w-3.5 h-3.5 ${isRefreshingOnline ? 'animate-spin' : ''}`} />
+          <span>Verify Online Sync</span>
+        </button>
+      </div>
 
       {/* Success / Error Alerts */}
       {successMsg && (
