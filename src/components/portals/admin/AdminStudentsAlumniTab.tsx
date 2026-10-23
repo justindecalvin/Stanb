@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useSchool } from '../../../context/SchoolContext';
-import { StudentProfile } from '../../../types';
+import { StudentProfile, TutorProfile } from '../../../types';
 import { 
   GraduationCap, 
   Search, 
@@ -68,6 +68,7 @@ export const AdminStudentsAlumniTab: React.FC = () => {
   const [showRegisterScholarModal, setShowRegisterScholarModal] = useState(false);
   const [isSubmittingScholar, setIsSubmittingScholar] = useState(false);
   const [createdScholar, setCreatedScholar] = useState<StudentProfile | null>(null);
+  const [createdTutor, setCreatedTutor] = useState<TutorProfile | null>(null);
   const [scholarCopiedField, setScholarCopiedField] = useState<string | null>(null);
 
   // Admin Scholar Form fields
@@ -170,7 +171,7 @@ export const AdminStudentsAlumniTab: React.FC = () => {
     e.preventDefault();
     if (!newTutorName.trim() || !newTutorEmail.trim()) return;
 
-    createTutorAccount({
+    const newT = createTutorAccount({
       name: newTutorName.trim(),
       email: newTutorEmail.trim(),
       password: newTutorPassword.trim() || 'stanbax2025',
@@ -182,12 +183,13 @@ export const AdminStudentsAlumniTab: React.FC = () => {
       phone: newTutorPhone
     });
 
-    setSuccessMsg(`Faculty Tutor account created for ${newTutorName}. Initial password: ${newTutorPassword}`);
+    setCreatedTutor(newT);
+    setSuccessMsg(`Faculty Tutor account created for ${newTutorName} (${newT.staffId}). Initial password: ${newTutorPassword}. Saved permanently online.`);
     setShowNewTutorModal(false);
     setNewTutorName('');
     setNewTutorEmail('');
     setNewTutorPassword('stanbax2025');
-    setTimeout(() => setSuccessMsg(''), 5000);
+    setTimeout(() => setSuccessMsg(''), 6000);
   };
 
   const handleRefreshOnline = async () => {
@@ -899,6 +901,234 @@ export const AdminStudentsAlumniTab: React.FC = () => {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Modal: Scholar Credentials Slip (Admin Creation) */}
+      {createdScholar && (
+        <div className="fixed inset-0 z-50 bg-slate-950/75 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="w-full max-w-lg bg-white rounded-3xl p-6 sm:p-8 shadow-2xl border border-slate-200 space-y-5 animate-fade-in text-slate-900">
+            <div className="flex items-center gap-3 pb-3 border-b border-slate-100">
+              <div className="w-12 h-12 rounded-2xl bg-emerald-100 text-emerald-900 flex items-center justify-center font-black">
+                <CheckCircle2 className="w-6 h-6 text-emerald-600" />
+              </div>
+              <div>
+                <h3 className="text-lg font-black text-slate-900">Scholar Account Created Online</h3>
+                <p className="text-xs text-slate-500">Official student registration slip & portal login credentials.</p>
+              </div>
+            </div>
+
+            <div className="p-3.5 rounded-2xl bg-emerald-50 border border-emerald-200 flex items-center gap-2.5 text-xs text-emerald-900 font-bold">
+              <Globe className="w-4 h-4 text-emerald-600 shrink-0" />
+              <span>Saved permanently online to server database (<code className="font-mono text-emerald-800">/api/students</code>). Ready for instant login!</span>
+            </div>
+
+            <div className="space-y-3 bg-slate-50 p-4 rounded-2xl border border-slate-200 text-xs">
+              <div>
+                <span className="text-slate-500 text-[11px] block uppercase font-bold">Scholar Name:</span>
+                <span className="font-black text-sm text-slate-900">{createdScholar.name}</span>
+              </div>
+
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <span className="text-slate-500 text-[11px] block uppercase font-bold">Class / Grade:</span>
+                  <span className="font-bold text-slate-800">{createdScholar.grade}</span>
+                </div>
+                <div>
+                  <span className="text-slate-500 text-[11px] block uppercase font-bold">House:</span>
+                  <span className="font-bold text-slate-800">{createdScholar.house || 'Sapphire'}</span>
+                </div>
+              </div>
+
+              <div className="pt-2 border-t border-slate-200">
+                <span className="text-slate-500 text-[11px] block uppercase font-bold mb-1">Portal Registration Number (ID):</span>
+                <div className="flex items-center justify-between p-2.5 rounded-xl bg-white border border-slate-300 font-mono font-black text-blue-900 text-sm">
+                  <span>{createdScholar.regNumber}</span>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      navigator.clipboard.writeText(createdScholar.regNumber);
+                      setScholarCopiedField('reg');
+                      setTimeout(() => setScholarCopiedField(null), 2500);
+                    }}
+                    className="p-1.5 rounded-lg hover:bg-slate-100 text-slate-600 cursor-pointer"
+                    title="Copy Registration Number"
+                  >
+                    {scholarCopiedField === 'reg' ? <Check className="w-4 h-4 text-emerald-600" /> : <Copy className="w-4 h-4" />}
+                  </button>
+                </div>
+              </div>
+
+              <div>
+                <span className="text-slate-500 text-[11px] block uppercase font-bold mb-1">Initial Password / PIN:</span>
+                <div className="flex items-center justify-between p-2.5 rounded-xl bg-white border border-slate-300 font-mono font-bold text-slate-800 text-xs">
+                  <span>{createdScholar.password || 'stanbax2025'}</span>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      navigator.clipboard.writeText(createdScholar.password || 'stanbax2025');
+                      setScholarCopiedField('pass');
+                      setTimeout(() => setScholarCopiedField(null), 2500);
+                    }}
+                    className="p-1.5 rounded-lg hover:bg-slate-100 text-slate-600 cursor-pointer"
+                    title="Copy Password"
+                  >
+                    {scholarCopiedField === 'pass' ? <Check className="w-4 h-4 text-emerald-600" /> : <Copy className="w-4 h-4" />}
+                  </button>
+                </div>
+              </div>
+
+              <div>
+                <span className="text-slate-500 text-[11px] block uppercase font-bold mb-1">Official Student Email:</span>
+                <div className="flex items-center justify-between p-2.5 rounded-xl bg-white border border-slate-300 font-mono text-slate-700 text-xs">
+                  <span>{createdScholar.email}</span>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      navigator.clipboard.writeText(createdScholar.email || '');
+                      setScholarCopiedField('email');
+                      setTimeout(() => setScholarCopiedField(null), 2500);
+                    }}
+                    className="p-1.5 rounded-lg hover:bg-slate-100 text-slate-600 cursor-pointer"
+                    title="Copy Email"
+                  >
+                    {scholarCopiedField === 'email' ? <Check className="w-4 h-4 text-emerald-600" /> : <Copy className="w-4 h-4" />}
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <div className="flex items-center justify-between gap-3 pt-2">
+              <button
+                type="button"
+                onClick={() => {
+                  const slip = `STANBAX SCHOOLS IBADAN - SCHOLAR REGISTRATION SLIP\nName: ${createdScholar.name}\nClass: ${createdScholar.grade}\nRegistration Number: ${createdScholar.regNumber}\nPortal Password: ${createdScholar.password || 'stanbax2025'}\nEmail: ${createdScholar.email}\nPortal URL: ${window.location.origin}`;
+                  navigator.clipboard.writeText(slip);
+                  setScholarCopiedField('slip');
+                  setTimeout(() => setScholarCopiedField(null), 3000);
+                }}
+                className="px-4 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 text-xs font-bold transition flex items-center gap-1.5 cursor-pointer"
+              >
+                {scholarCopiedField === 'slip' ? <Check className="w-4 h-4 text-emerald-600" /> : <Copy className="w-4 h-4" />}
+                <span>{scholarCopiedField === 'slip' ? 'Full Slip Copied!' : 'Copy Full Slip'}</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setCreatedScholar(null)}
+                className="px-6 py-2.5 rounded-xl bg-blue-900 hover:bg-blue-950 text-white text-xs font-black shadow-md cursor-pointer transition"
+              >
+                Done
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal: Faculty Tutor Credentials Slip (Admin Creation) */}
+      {createdTutor && (
+        <div className="fixed inset-0 z-50 bg-slate-950/75 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="w-full max-w-lg bg-white rounded-3xl p-6 sm:p-8 shadow-2xl border border-slate-200 space-y-5 animate-fade-in text-slate-900">
+            <div className="flex items-center gap-3 pb-3 border-b border-slate-100">
+              <div className="w-12 h-12 rounded-2xl bg-blue-100 text-blue-900 flex items-center justify-center font-black">
+                <CheckCircle2 className="w-6 h-6 text-blue-600" />
+              </div>
+              <div>
+                <h3 className="text-lg font-black text-slate-900">Faculty Tutor Account Created</h3>
+                <p className="text-xs text-slate-500">Official staff credentials saved online for faculty workspace login.</p>
+              </div>
+            </div>
+
+            <div className="p-3.5 rounded-2xl bg-emerald-50 border border-emerald-200 flex items-center gap-2.5 text-xs text-emerald-900 font-bold">
+              <Globe className="w-4 h-4 text-emerald-600 shrink-0" />
+              <span>Saved permanently online to server database (<code className="font-mono text-emerald-800">/api/tutors</code>). Ready for instant login!</span>
+            </div>
+
+            <div className="space-y-3 bg-slate-50 p-4 rounded-2xl border border-slate-200 text-xs">
+              <div>
+                <span className="text-slate-500 text-[11px] block uppercase font-bold">Faculty Name:</span>
+                <span className="font-black text-sm text-slate-900">{createdTutor.name}</span>
+              </div>
+
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <span className="text-slate-500 text-[11px] block uppercase font-bold">Department:</span>
+                  <span className="font-bold text-slate-800">{createdTutor.department}</span>
+                </div>
+                <div>
+                  <span className="text-slate-500 text-[11px] block uppercase font-bold">Designation:</span>
+                  <span className="font-bold text-slate-800">{createdTutor.role}</span>
+                </div>
+              </div>
+
+              <div className="pt-2 border-t border-slate-200">
+                <span className="text-slate-500 text-[11px] block uppercase font-bold mb-1">Staff ID:</span>
+                <div className="flex items-center justify-between p-2.5 rounded-xl bg-white border border-slate-300 font-mono font-black text-blue-900 text-sm">
+                  <span>{createdTutor.staffId}</span>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      navigator.clipboard.writeText(createdTutor.staffId || '');
+                      setScholarCopiedField('staffId');
+                      setTimeout(() => setScholarCopiedField(null), 2500);
+                    }}
+                    className="p-1.5 rounded-lg hover:bg-slate-100 text-slate-600 cursor-pointer"
+                    title="Copy Staff ID"
+                  >
+                    {scholarCopiedField === 'staffId' ? <Check className="w-4 h-4 text-emerald-600" /> : <Copy className="w-4 h-4" />}
+                  </button>
+                </div>
+              </div>
+
+              <div>
+                <span className="text-slate-500 text-[11px] block uppercase font-bold mb-1">Staff Email:</span>
+                <div className="flex items-center justify-between p-2.5 rounded-xl bg-white border border-slate-300 font-mono text-slate-700 text-xs">
+                  <span>{createdTutor.email}</span>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      navigator.clipboard.writeText(createdTutor.email);
+                      setScholarCopiedField('tutorEmail');
+                      setTimeout(() => setScholarCopiedField(null), 2500);
+                    }}
+                    className="p-1.5 rounded-lg hover:bg-slate-100 text-slate-600 cursor-pointer"
+                    title="Copy Email"
+                  >
+                    {scholarCopiedField === 'tutorEmail' ? <Check className="w-4 h-4 text-emerald-600" /> : <Copy className="w-4 h-4" />}
+                  </button>
+                </div>
+              </div>
+
+              <div>
+                <span className="text-slate-500 text-[11px] block uppercase font-bold mb-1">Initial Password:</span>
+                <div className="flex items-center justify-between p-2.5 rounded-xl bg-white border border-slate-300 font-mono font-bold text-slate-800 text-xs">
+                  <span>{createdTutor.password || 'stanbax2025'}</span>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      navigator.clipboard.writeText(createdTutor.password || 'stanbax2025');
+                      setScholarCopiedField('tutorPass');
+                      setTimeout(() => setScholarCopiedField(null), 2500);
+                    }}
+                    className="p-1.5 rounded-lg hover:bg-slate-100 text-slate-600 cursor-pointer"
+                    title="Copy Password"
+                  >
+                    {scholarCopiedField === 'tutorPass' ? <Check className="w-4 h-4 text-emerald-600" /> : <Copy className="w-4 h-4" />}
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <div className="flex items-center justify-end gap-2 pt-2">
+              <button
+                type="button"
+                onClick={() => setCreatedTutor(null)}
+                className="px-6 py-2.5 rounded-xl bg-blue-900 hover:bg-blue-950 text-white text-xs font-black shadow-md cursor-pointer transition"
+              >
+                Done
+              </button>
+            </div>
           </div>
         </div>
       )}

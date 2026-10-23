@@ -28,6 +28,8 @@ import {
   Info,
   Shield,
   HelpCircle,
+  Copy,
+  Globe,
   X
 } from '../../RealIcons';
 import { ALL_PRIVILEGES, DEFAULT_ROLE_PRIVILEGES } from '../../../data/rolePrivilegesData';
@@ -66,6 +68,8 @@ export const AdminRolePrivilegesTab: React.FC = () => {
   const [newModPassword, setNewModPassword] = useState('Moderator2025!');
   const [newModPhone, setNewModPhone] = useState('');
   const [newModTitle, setNewModTitle] = useState('Community & Communications Moderator');
+  const [createdMod, setCreatedMod] = useState<ModeratorProfile | null>(null);
+  const [modCopiedField, setModCopiedField] = useState<string | null>(null);
 
   const remoteActive = isRemoteEnabled();
 
@@ -87,7 +91,7 @@ export const AdminRolePrivilegesTab: React.FC = () => {
     e.preventDefault();
     if (!newModName.trim() || !newModEmail.trim()) return;
 
-    addModerator({
+    const created = addModerator({
       name: newModName.trim(),
       email: newModEmail.trim(),
       password: newModPassword.trim() || 'Moderator2025!',
@@ -97,12 +101,13 @@ export const AdminRolePrivilegesTab: React.FC = () => {
       status: 'Active'
     });
 
+    setCreatedMod(created);
     setNewModName('');
     setNewModEmail('');
     setNewModPassword('Moderator2025!');
     setNewModPhone('');
     setShowAddModModal(false);
-    triggerSuccess('New Moderator appointed and saved online to server database!');
+    triggerSuccess(`New Moderator "${created.name}" appointed and saved online to server database!`);
   };
 
   const triggerSuccess = (msg: string) => {
@@ -679,6 +684,93 @@ export const AdminRolePrivilegesTab: React.FC = () => {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Modal: Moderator Credentials Slip */}
+      {createdMod && (
+        <div className="fixed inset-0 z-50 bg-slate-950/75 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="w-full max-w-lg bg-white rounded-3xl p-6 sm:p-8 shadow-2xl border border-slate-200 space-y-5 animate-fade-in text-slate-900">
+            <div className="flex items-center gap-3 pb-3 border-b border-slate-100">
+              <div className="w-12 h-12 rounded-2xl bg-indigo-100 text-indigo-900 flex items-center justify-center font-black">
+                <CheckCircle2 className="w-6 h-6 text-indigo-600" />
+              </div>
+              <div>
+                <h3 className="text-lg font-black text-slate-900">Moderator Appointed Online</h3>
+                <p className="text-xs text-slate-500">Official moderator login credentials saved to central online server database.</p>
+              </div>
+            </div>
+
+            <div className="p-3.5 rounded-2xl bg-emerald-50 border border-emerald-200 flex items-center gap-2.5 text-xs text-emerald-900 font-bold">
+              <Globe className="w-4 h-4 text-emerald-600 shrink-0" />
+              <span>Saved permanently online (<code className="font-mono text-emerald-800">/api/moderators</code>). Ready for instant login!</span>
+            </div>
+
+            <div className="space-y-3 bg-slate-50 p-4 rounded-2xl border border-slate-200 text-xs">
+              <div>
+                <span className="text-slate-500 text-[11px] block uppercase font-bold">Moderator Full Name:</span>
+                <span className="font-black text-sm text-slate-900">{createdMod.name}</span>
+              </div>
+
+              <div>
+                <span className="text-slate-500 text-[11px] block uppercase font-bold">Designation:</span>
+                <span className="font-bold text-slate-800">{createdMod.roleTitle}</span>
+              </div>
+
+              <div className="pt-2 border-t border-slate-200">
+                <span className="text-slate-500 text-[11px] block uppercase font-bold mb-1">Official Moderator Email (Login ID):</span>
+                <div className="flex items-center justify-between p-2.5 rounded-xl bg-white border border-slate-300 font-mono font-bold text-blue-900 text-xs">
+                  <span>{createdMod.email}</span>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      navigator.clipboard.writeText(createdMod.email);
+                      setModCopiedField('email');
+                      setTimeout(() => setModCopiedField(null), 2500);
+                    }}
+                    className="p-1.5 rounded-lg hover:bg-slate-100 text-slate-600 cursor-pointer"
+                    title="Copy Email"
+                  >
+                    {modCopiedField === 'email' ? <Check className="w-4 h-4 text-emerald-600" /> : <Copy className="w-4 h-4" />}
+                  </button>
+                </div>
+              </div>
+
+              <div>
+                <span className="text-slate-500 text-[11px] block uppercase font-bold mb-1">Moderator Portal Password:</span>
+                <div className="flex items-center justify-between p-2.5 rounded-xl bg-white border border-slate-300 font-mono font-bold text-slate-800 text-xs">
+                  <span>{createdMod.password || 'Moderator2025!'}</span>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      navigator.clipboard.writeText(createdMod.password || 'Moderator2025!');
+                      setModCopiedField('pass');
+                      setTimeout(() => setModCopiedField(null), 2500);
+                    }}
+                    className="p-1.5 rounded-lg hover:bg-slate-100 text-slate-600 cursor-pointer"
+                    title="Copy Password"
+                  >
+                    {modCopiedField === 'pass' ? <Check className="w-4 h-4 text-emerald-600" /> : <Copy className="w-4 h-4" />}
+                  </button>
+                </div>
+              </div>
+
+              <div>
+                <span className="text-slate-500 text-[11px] block uppercase font-bold">Assigned Sections:</span>
+                <span className="font-medium text-slate-700">{createdMod.assignedSections?.join(', ') || 'School Live Chat, Visitor Desk'}</span>
+              </div>
+            </div>
+
+            <div className="flex items-center justify-end gap-2 pt-2">
+              <button
+                type="button"
+                onClick={() => setCreatedMod(null)}
+                className="px-6 py-2.5 rounded-xl bg-blue-900 hover:bg-blue-950 text-white text-xs font-black shadow-md cursor-pointer transition"
+              >
+                Done
+              </button>
+            </div>
           </div>
         </div>
       )}

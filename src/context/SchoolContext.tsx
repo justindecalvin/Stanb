@@ -2430,7 +2430,16 @@ export const SchoolProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     }
   });
 
-  const student = students.find(s => s.id === activeStudentId) || students[0] || DEMO_STUDENT;
+  const student = students.find(s => s.id === activeStudentId) || (() => {
+    try {
+      const cached = sessionStorage.getItem('stanbax_active_student_cache');
+      if (cached) {
+        const parsed = JSON.parse(cached);
+        if (parsed?.id === activeStudentId) return parsed as StudentProfile;
+      }
+    } catch {}
+    return null;
+  })() || students[0] || DEMO_STUDENT;
 
   const switchActiveStudent = (id: string) => {
     setActiveStudentId(id);
@@ -2554,9 +2563,23 @@ export const SchoolProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         ...newStudent,
+        emergencyPhone: data.emergencyPhone,
+        parentPhone: data.parentPhone || data.emergencyPhone || '+234 800 000 0000',
+        parentName: data.parentName || 'Parent / Guardian',
         creatorRole: 'admin',
         creatorName: 'Admissions Desk'
       })
+    }).then(async r => {
+      if (r.ok) {
+        const d = await r.json();
+        if (d.student) {
+          setStudents(curr => {
+            const list = curr.map(s => s.id === newStudent.id || s.regNumber === newStudent.regNumber ? { ...s, ...d.student, savedOnline: true } : s);
+            try { localStorage.setItem('stanbax_students', JSON.stringify(list)); } catch {}
+            return list;
+          });
+        }
+      }
     }).catch(err => console.warn('[Online Storage] Error saving registered student online:', err));
 
     void remoteCreateCredential(
@@ -3815,6 +3838,7 @@ export const SchoolProvider: React.FC<{ children: React.ReactNode }> = ({ childr
               setActiveStudentId(stuUser.id);
               localStorage.setItem('stanbax_student_id', stuUser.id);
               sessionStorage.setItem('stanbax_student_id', stuUser.id);
+              try { sessionStorage.setItem('stanbax_active_student_cache', JSON.stringify(stuUser)); } catch {}
               setStudents(prev => {
                 const exists = prev.some(s => s.id === stuUser.id);
                 const next = exists ? prev.map(s => s.id === stuUser.id ? { ...s, ...stuUser } : s) : [stuUser, ...prev];
@@ -3824,6 +3848,22 @@ export const SchoolProvider: React.FC<{ children: React.ReactNode }> = ({ childr
             }
             localStorage.setItem('stanbax_student_auth', 'true');
             sessionStorage.setItem('stanbax_student_auth', 'true');
+          } else if (role === 'parent') {
+            setIsParentAuthenticated(true);
+            const parentUser = sData.user;
+            if (parentUser?.id) {
+              setActiveParentId(parentUser.id);
+              localStorage.setItem('stanbax_parent_id', parentUser.id);
+              sessionStorage.setItem('stanbax_parent_id', parentUser.id);
+              setParents(prev => {
+                const exists = prev.some(p => p.id === parentUser.id);
+                const next = exists ? prev.map(p => p.id === parentUser.id ? { ...p, ...parentUser } : p) : [parentUser, ...prev];
+                try { localStorage.setItem('stanbax_parents_list', JSON.stringify(next)); } catch {}
+                return next;
+              });
+            }
+            localStorage.setItem('stanbax_parent_auth', 'true');
+            sessionStorage.setItem('stanbax_parent_auth', 'true');
           }
 
           localStorage.setItem('stanbax_active_section', targetSection);
