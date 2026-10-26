@@ -85,6 +85,25 @@ export interface ModeratorProfile {
   status: 'Active' | 'Suspended';
 }
 
+export interface LandingPageSectionsConfig {
+  hero: boolean;
+  keyPillars: boolean;
+  about: boolean;
+  programs: boolean;
+  studentLife: boolean;
+  gallery: boolean;
+  faculty: boolean;
+  calendar: boolean;
+  newsBlog: boolean;
+  notices: boolean;
+  testimonials: boolean;
+  achievements: boolean;
+  houseChampionship: boolean;
+  contributors: boolean;
+  contact: boolean;
+  faq: boolean;
+}
+
 export type GalleryCategory = 'all' | 'facilities' | 'events' | 'sports' | 'academics' | 'arts';
 
 export interface GalleryPhoto {
@@ -342,6 +361,11 @@ export interface StudentProfile {
   graduationYear?: string;
   waecRegistration?: WaecRegistration;
   waecPromptDismissed?: boolean;
+  savedOnline?: boolean;
+  storageSource?: string;
+  createdAt?: string;
+  createdByRole?: string;
+  createdByName?: string;
 }
 
 export interface CustomResultSubject {

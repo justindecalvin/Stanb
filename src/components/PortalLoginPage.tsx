@@ -18,8 +18,10 @@ import {
   X,
   GraduationCap
 } from './RealIcons';
-import { UserRole } from '../types';
+import { UserRole, StudentProfile } from '../types';
 import { StudentRegistrationModal } from './StudentRegistrationModal';
+import { StudentRosterDirectoryModal } from './StudentRosterDirectoryModal';
+import { Users } from 'lucide-react';
 
 interface PortalLoginPageProps {
   onBackToWebsite: () => void;
@@ -48,6 +50,7 @@ export const PortalLoginPage: React.FC<PortalLoginPageProps> = ({
     headmistressProfile,
     moderators,
     activeModeratorId,
+    students,
     student,
     tutor,
     parents,
@@ -66,8 +69,42 @@ export const PortalLoginPage: React.FC<PortalLoginPageProps> = ({
   const [successMessage, setSuccessMessage] = useState('');
   const [showHelp, setShowHelp] = useState(false);
 
+  // Student roster directory modal state
+  const [showRosterModal, setShowRosterModal] = useState(false);
+
   // Student registration modal state
   const [showRegistrationModal, setShowRegistrationModal] = useState(false);
+
+  const handleSelectRosterStudent = async (selected: StudentProfile) => {
+    setShowRosterModal(false);
+    const loginId = selected.regNumber || selected.name;
+    const loginPass = selected.password || 'stanbax2025';
+    setIdentifier(loginId);
+    setPassword(loginPass);
+    setIsSubmitting(true);
+    setErrorMessage('');
+    setSuccessMessage(`Verifying ${selected.name} (${selected.grade})... Opening Scholar Portal...`);
+
+    try {
+      const res = await universalLogin(loginId, loginPass);
+      if (res.success && res.role) {
+        setTimeout(() => {
+          if (res.targetSection) {
+            setActiveSection(res.targetSection);
+          }
+          if (onLoginSuccess && res.role) {
+            onLoginSuccess(res.role);
+          }
+        }, 500);
+      } else {
+        setIsSubmitting(false);
+        setErrorMessage(res.message || 'Login verification failed.');
+      }
+    } catch {
+      setIsSubmitting(false);
+      setErrorMessage('Could not complete instant sign in. Please try again.');
+    }
+  };
 
   // Forgot Password modal states
   const [showForgotModal, setShowForgotModal] = useState(false);
@@ -434,8 +471,24 @@ export const PortalLoginPage: React.FC<PortalLoginPageProps> = ({
               </button>
             </form>
 
+            {/* Student Roster & Quick Sign-In Directory */}
+            <div className="pt-3 border-t border-[#EAE2CE]">
+              <button
+                type="button"
+                onClick={() => setShowRosterModal(true)}
+                className="w-full py-2.5 px-4 rounded-xl bg-gradient-to-r from-red-800 via-red-900 to-amber-900 hover:from-red-900 hover:to-amber-950 text-white font-black text-xs sm:text-sm shadow-md transition flex items-center justify-center gap-2 cursor-pointer border border-amber-500/40 active:scale-98"
+                id="btn-open-student-roster"
+              >
+                <GraduationCap className="w-4 h-4 text-amber-300" />
+                <span>View Enrolled Student Roster & Fast Sign-In</span>
+                <span className="text-[10px] font-bold bg-amber-400 text-neutral-950 px-2 py-0.5 rounded-full ml-1">
+                  {students.length} Scholars
+                </span>
+              </button>
+            </div>
+
             {/* Scholar Registration Callout */}
-            <div className="pt-3 border-t border-[#EAE2CE] text-center">
+            <div className="pt-2 text-center">
               <div className="p-3.5 rounded-2xl bg-amber-50/80 border border-amber-200 text-center space-y-2">
                 <div className="flex items-center justify-center gap-1.5 text-neutral-900 font-extrabold text-xs">
                   <GraduationCap className="w-4 h-4 text-red-700" />
@@ -676,6 +729,14 @@ export const PortalLoginPage: React.FC<PortalLoginPageProps> = ({
         onRegistrationSuccess={(registered) => {
           setIdentifier(registered.regNumber);
         }}
+      />
+
+      {/* Student Roster Directory Modal */}
+      <StudentRosterDirectoryModal
+        isOpen={showRosterModal}
+        onClose={() => setShowRosterModal(false)}
+        students={students}
+        onSelectStudent={handleSelectRosterStudent}
       />
 
       {/* Footer Notice */}

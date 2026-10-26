@@ -36,6 +36,7 @@ export const Navbar: React.FC<NavbarProps> = ({
 }) => {
   const { 
     schoolInfo,
+    landingSections,
     isAdminAuthenticated,
     isProprietressAuthenticated,
     isHeadmistressAuthenticated,
@@ -76,7 +77,7 @@ export const Navbar: React.FC<NavbarProps> = ({
 
   const hasAnyAuth = isStudentAuthenticated || isAdminAuthenticated || isHeadmistressAuthenticated || isModeratorAuthenticated || isTutorAuthenticated || isParentAuthenticated || isProprietressAuthenticated;
 
-  const navLinks: Array<{ label: string; section: PageSection }> = [
+  const rawNavLinks: Array<{ label: string; section: PageSection }> = [
     { label: 'Home', section: 'home' },
     { label: 'About', section: 'about' },
     { label: 'Academic Programs', section: 'programs' },
@@ -91,6 +92,24 @@ export const Navbar: React.FC<NavbarProps> = ({
     { label: 'Credits & Contributors', section: 'contributors' },
     { label: 'Contact', section: 'contact' }
   ];
+
+  const navLinks: Array<{ label: string; section: PageSection }> = rawNavLinks.filter(link => {
+    if (!landingSections) return true;
+    if (link.section === 'home' && landingSections.hero === false) return false;
+    if (link.section === 'about' && landingSections.about === false) return false;
+    if (link.section === 'programs' && landingSections.programs === false) return false;
+    if (link.section === 'student-life' && landingSections.studentLife === false) return false;
+    if (link.section === 'gallery' && landingSections.gallery === false) return false;
+    if (link.section === 'faculty' && landingSections.faculty === false) return false;
+    if (link.section === 'calendar' && landingSections.calendar === false) return false;
+    if (link.section === 'news-blog' && landingSections.newsBlog === false) return false;
+    if (link.section === 'notices' && landingSections.notices === false) return false;
+    if (link.section === 'achievements' && landingSections.achievements === false) return false;
+    if (link.section === 'house-championship' && landingSections.houseChampionship === false) return false;
+    if (link.section === 'contributors' && landingSections.contributors === false) return false;
+    if (link.section === 'contact' && landingSections.contact === false) return false;
+    return true;
+  });
 
   return (
     <header className="sticky top-0 z-40 bg-white/95 backdrop-blur-md border-b border-stone-200/80 shadow-xs">

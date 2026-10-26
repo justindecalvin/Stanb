@@ -50,6 +50,9 @@ import { AdminVisitorInquiriesSubTab } from './admin/AdminVisitorInquiriesSubTab
 import { AdminRolePrivilegesTab } from './admin/AdminRolePrivilegesTab';
 import { AdminContributorsTab } from './admin/AdminContributorsTab';
 import { AdminWaecRegistrationTab } from './admin/AdminWaecRegistrationTab';
+import { FastClassScoreEntry } from './tutor/FastClassScoreEntry';
+import { AdminQuickAddStudentModal } from './admin/AdminQuickAddStudentModal';
+import { AdminFamilyLinkageModal } from './admin/AdminFamilyLinkageModal';
 import { SchoolChatSystem } from '../chat/SchoolChatSystem';
 import { SchoolPrefectBadgesModal } from '../chat/ChatLeadershipModals';
 import { NetlifyCloudSyncModal } from './admin/NetlifyCloudSyncModal';
@@ -62,6 +65,8 @@ interface AdminPortalProps {
 
 type AdminTab = 
   | 'overview'
+  | 'fast_scores'
+  | 'family_linkage'
   | 'roles_privileges'
   | 'chat'
   | 'calvin_tokens'
@@ -110,6 +115,8 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onBackToWebsite }) => 
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [showPrefectModal, setShowPrefectModal] = useState(false);
   const [showCloudSyncModal, setShowCloudSyncModal] = useState(false);
+  const [showQuickAddModal, setShowQuickAddModal] = useState(false);
+  const [showFamilyModal, setShowFamilyModal] = useState(false);
 
   const handleLogout = () => {
     logoutAdmin();
@@ -118,6 +125,8 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onBackToWebsite }) => 
 
   const menuItems: Array<{ id: AdminTab; label: string; icon: React.ElementType; badge?: string | number }> = [
     { id: 'overview', label: 'Dashboard Overview', icon: Layers },
+    { id: 'fast_scores', label: 'Fast Score Entry (Bulk CA/Exam)', icon: CheckCircle2, badge: 'Rapid Input' },
+    { id: 'family_linkage', label: 'Family & Sibling Linkage', icon: Users, badge: 'Merge/Assign' },
     { id: 'roles_privileges', label: 'Role Privileges & Delegations', icon: ShieldCheck, badge: 'Roles & Access' },
     { 
       id: 'chat', 
@@ -196,6 +205,19 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onBackToWebsite }) => 
             <span className="sm:hidden">
               {isRemoteEnabled() ? 'Synced' : 'Sync'}
             </span>
+          </button>
+
+          {/* Quick Add Scholar Button */}
+          <button
+            type="button"
+            onClick={() => setShowQuickAddModal(true)}
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-black rounded-xl bg-red-600 hover:bg-red-700 text-white transition-all cursor-pointer shadow-xs"
+            title="Quickly create scholar in Supabase database"
+            id="btn-header-quick-add-student"
+          >
+            <Users className="w-3.5 h-3.5" />
+            <span className="hidden sm:inline">+ Quick Add Scholar</span>
+            <span className="sm:hidden">+ Scholar</span>
           </button>
 
           <button
@@ -376,12 +398,42 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onBackToWebsite }) => 
                 <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
                   <button
                     type="button"
-                    onClick={() => setActiveTab('landing')}
-                    className="p-4 rounded-xl border-2 border-red-200 bg-red-50/40 hover:border-red-500 hover:bg-red-50 text-left transition-all group"
+                    onClick={() => setActiveTab('fast_scores')}
+                    className="p-4 rounded-xl border-2 border-emerald-300 bg-emerald-50/60 hover:border-emerald-600 hover:bg-emerald-100/70 text-left transition-all group"
                   >
-                    <Layout className="w-5 h-5 text-red-600 mb-2 group-hover:scale-110 transition-transform" />
-                    <div className="font-bold text-xs text-stone-900">School Logo & CMS</div>
-                    <div className="text-[11px] text-red-600 font-semibold">Change logo & website</div>
+                    <CheckCircle2 className="w-5 h-5 text-emerald-700 mb-2 group-hover:scale-110 transition-transform" />
+                    <div className="font-bold text-xs text-stone-900">Fast Score Entry (Bulk)</div>
+                    <div className="text-[11px] text-emerald-800 font-bold">Rapid CA1, CA2 & Exam</div>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setShowQuickAddModal(true)}
+                    className="p-4 rounded-xl border-2 border-red-300 bg-red-50/60 hover:border-red-600 hover:bg-red-100/70 text-left transition-all group"
+                  >
+                    <Users className="w-5 h-5 text-red-700 mb-2 group-hover:scale-110 transition-transform" />
+                    <div className="font-bold text-xs text-stone-900">+ Quick Add Scholar</div>
+                    <div className="text-[11px] text-red-800 font-bold">Instant Supabase Enrollment</div>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setShowFamilyModal(true)}
+                    className="p-4 rounded-xl border-2 border-purple-300 bg-purple-50/60 hover:border-purple-600 hover:bg-purple-100/70 text-left transition-all group"
+                  >
+                    <Users className="w-5 h-5 text-purple-700 mb-2 group-hover:scale-110 transition-transform" />
+                    <div className="font-bold text-xs text-stone-900">Family & Sibling Linkage</div>
+                    <div className="text-[11px] text-purple-800 font-bold">Merge & Assign Parents</div>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setActiveTab('landing')}
+                    className="p-4 rounded-xl border-2 border-amber-300 bg-amber-50/40 hover:border-amber-500 hover:bg-amber-50 text-left transition-all group"
+                  >
+                    <Layout className="w-5 h-5 text-amber-700 mb-2 group-hover:scale-110 transition-transform" />
+                    <div className="font-bold text-xs text-stone-900">Landing Page CMS & Toggles</div>
+                    <div className="text-[11px] text-amber-800 font-semibold">16 Section Visibility Toggles</div>
                   </button>
 
                   <button
@@ -527,6 +579,19 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onBackToWebsite }) => 
             </div>
           )}
 
+          {activeTab === 'fast_scores' && (
+            <div className="space-y-6">
+              <FastClassScoreEntry />
+            </div>
+          )}
+          {activeTab === 'family_linkage' && (
+            <div className="space-y-6">
+              <AdminFamilyLinkageModal
+                isOpen={true}
+                onClose={() => setActiveTab('overview')}
+              />
+            </div>
+          )}
           {activeTab === 'roles_privileges' && <AdminRolePrivilegesTab />}
           {activeTab === 'calvin_tokens' && <AdminCalvinTokensTab />}
           {activeTab === 'scheme_of_work' && <AdminSchemeOfWorkTab />}
@@ -561,6 +626,18 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onBackToWebsite }) => 
       <NetlifyCloudSyncModal
         isOpen={showCloudSyncModal}
         onClose={() => setShowCloudSyncModal(false)}
+      />
+
+      {/* Quick Add Scholar Modal */}
+      <AdminQuickAddStudentModal
+        isOpen={showQuickAddModal}
+        onClose={() => setShowQuickAddModal(false)}
+      />
+
+      {/* Family & Sibling Linkage Modal */}
+      <AdminFamilyLinkageModal
+        isOpen={showFamilyModal}
+        onClose={() => setShowFamilyModal(false)}
       />
     </div>
   );

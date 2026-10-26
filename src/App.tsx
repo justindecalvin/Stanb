@@ -43,6 +43,7 @@ const MainAppContent: React.FC = () => {
   const { 
     activeSection, 
     setActiveSection,
+    landingSections,
     isAdminAuthenticated,
     isProprietressAuthenticated,
     isTutorAuthenticated,
@@ -217,75 +218,107 @@ const MainAppContent: React.FC = () => {
         onOpenTour={() => setIsTourOpen(true)}
       />
 
-      {/* Main Website Flow - Arrangement strictly preserved */}
+      {/* Main Website Flow - Toggleable via Admin Dashboard */}
       <main className="flex-1">
-        <div id="home">
-          <HeroBanner 
-            onNavigate={handleNavigate}
-            onOpenAdmissions={() => setIsAdmissionsOpen(true)}
-          />
-        </div>
+        {landingSections?.hero !== false && (
+          <div id="home">
+            <HeroBanner 
+              onNavigate={handleNavigate}
+              onOpenAdmissions={() => setIsAdmissionsOpen(true)}
+            />
+          </div>
+        )}
 
-        <KeyPillars />
+        {landingSections?.keyPillars !== false && (
+          <KeyPillars />
+        )}
 
-        <div id="about">
-          <AboutSection onOpenAdmissions={() => setIsAdmissionsOpen(true)} />
-        </div>
+        {landingSections?.about !== false && (
+          <div id="about">
+            <AboutSection onOpenAdmissions={() => setIsAdmissionsOpen(true)} />
+          </div>
+        )}
 
-        <div id="programs">
-          <AcademicPrograms onOpenAdmissions={() => setIsAdmissionsOpen(true)} />
-        </div>
+        {landingSections?.programs !== false && (
+          <div id="programs">
+            <AcademicPrograms onOpenAdmissions={() => setIsAdmissionsOpen(true)} />
+          </div>
+        )}
 
-        <div id="student-life">
-          <StudentLifeSection onOpenAdmissions={() => setIsAdmissionsOpen(true)} />
-        </div>
+        {landingSections?.studentLife !== false && (
+          <div id="student-life">
+            <StudentLifeSection onOpenAdmissions={() => setIsAdmissionsOpen(true)} />
+          </div>
+        )}
 
-        <div id="gallery">
-          <CampusGallery onOpenAdmissions={() => setIsAdmissionsOpen(true)} />
-        </div>
+        {landingSections?.gallery !== false && (
+          <div id="gallery">
+            <CampusGallery onOpenAdmissions={() => setIsAdmissionsOpen(true)} />
+          </div>
+        )}
 
-        <div id="faculty">
-          <FacultyTeam />
-        </div>
+        {landingSections?.faculty !== false && (
+          <div id="faculty">
+            <FacultyTeam />
+          </div>
+        )}
 
-        <div id="calendar">
-          <AcademicCalendarSection />
-        </div>
+        {landingSections?.calendar !== false && (
+          <div id="calendar">
+            <AcademicCalendarSection />
+          </div>
+        )}
 
-        <div id="news-blog">
-          <SchoolNewsBlogSection onOpenAdmissions={() => setIsAdmissionsOpen(true)} />
-        </div>
+        {landingSections?.newsBlog !== false && (
+          <div id="news-blog">
+            <SchoolNewsBlogSection onOpenAdmissions={() => setIsAdmissionsOpen(true)} />
+          </div>
+        )}
 
-        <div id="notices">
-          <NoticeBoard onOpenAdmissions={() => setIsAdmissionsOpen(true)} />
-        </div>
+        {landingSections?.notices !== false && (
+          <div id="notices">
+            <NoticeBoard onOpenAdmissions={() => setIsAdmissionsOpen(true)} />
+          </div>
+        )}
 
-        <div id="testimonials">
-          <Testimonials />
-        </div>
+        {landingSections?.testimonials !== false && (
+          <div id="testimonials">
+            <Testimonials />
+          </div>
+        )}
 
-        <div id="achievements">
-          <StudentAchievements />
-        </div>
+        {landingSections?.achievements !== false && (
+          <div id="achievements">
+            <StudentAchievements />
+          </div>
+        )}
 
-        <div id="house-championship">
-          <HouseChampionshipLeaderboard />
-        </div>
+        {landingSections?.houseChampionship !== false && (
+          <div id="house-championship">
+            <HouseChampionshipLeaderboard />
+          </div>
+        )}
 
-        <div id="contributors">
-          <ContributorsSection onOpenAdminCredits={() => setActiveSection('admin-portal')} />
-        </div>
+        {landingSections?.contributors !== false && (
+          <div id="contributors">
+            <ContributorsSection onOpenAdminCredits={() => setActiveSection('admin-portal')} />
+          </div>
+        )}
 
-        <div id="contact">
-          <ContactSection />
-        </div>
+        {landingSections?.contact !== false && (
+          <div id="contact">
+            <ContactSection />
+          </div>
+        )}
       </main>
 
       {/* Accordion FAQ Section - Positioned in the Footer Area */}
-      <FAQSection 
-        onOpenAdmissions={() => setIsAdmissionsOpen(true)}
-        onOpenTuitionCalc={() => setIsTuitionCalcOpen(true)}
-      />
+      {landingSections?.faq !== false && (
+        <FAQSection 
+          onOpenAdmissions={() => setIsAdmissionsOpen(true)}
+          onOpenTuitionCalc={() => setIsTuitionCalcOpen(true)}
+        />
+      )}
 
       {/* Universal Footer */}
       <Footer 

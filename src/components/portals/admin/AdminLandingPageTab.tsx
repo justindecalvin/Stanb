@@ -34,6 +34,7 @@ import { HeroSlide, AcademicProgram, KeyPillarItem, Club, Testimonial, HouseStan
 import { DEFAULT_IMAGES } from '../../../data/schoolData';
 
 type CmsSubTab = 
+  | 'visibility'
   | 'logo' 
   | 'hero' 
   | 'about' 
@@ -93,7 +94,10 @@ export const AdminLandingPageTab: React.FC = () => {
     addTestimonial, 
     deleteTestimonial, 
     updateTestimonialsHeader, 
-    resetTestimonialsToDefault
+    resetTestimonialsToDefault,
+    landingSections,
+    updateLandingSectionVisibility,
+    resetLandingSectionsToDefault
   } = useSchool();
 
   const [activeSubTab, setActiveSubTab] = useState<CmsSubTab>('logo');
@@ -306,6 +310,22 @@ export const AdminLandingPageTab: React.FC = () => {
       <div className="flex items-center gap-2 overflow-x-auto pb-2 border-b border-stone-200 no-scrollbar">
         <button
           type="button"
+          onClick={() => setActiveSubTab('visibility')}
+          className={`px-4 py-2.5 rounded-xl text-xs font-black transition-all flex items-center gap-2 shrink-0 cursor-pointer ${
+            activeSubTab === 'visibility'
+              ? 'bg-red-600 text-white shadow-md ring-2 ring-red-400/40'
+              : 'bg-white text-stone-700 border border-stone-200 hover:bg-stone-50'
+          }`}
+        >
+          <Sliders className="w-4 h-4 text-amber-500" />
+          <span>Page Section Toggles</span>
+          <span className="px-1.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800 text-[10px] font-black">
+            16 Sections
+          </span>
+        </button>
+
+        <button
+          type="button"
           onClick={() => setActiveSubTab('logo')}
           className={`px-4 py-2.5 rounded-xl text-xs font-black transition-all flex items-center gap-2 shrink-0 cursor-pointer ${
             activeSubTab === 'logo'
@@ -428,6 +448,308 @@ export const AdminLandingPageTab: React.FC = () => {
           <span>Reviews & Testimonials</span>
         </button>
       </div>
+
+      {/* ========================================================================= */}
+      {/* 0. TAB: LANDING PAGE SECTION VISIBILITY TOGGLES (DIRECT DATABASE SYNC)    */}
+      {/* ========================================================================= */}
+      {activeSubTab === 'visibility' && (
+        <div className="space-y-6">
+          <div className="bg-white p-6 sm:p-8 rounded-3xl border border-stone-200 shadow-sm space-y-6">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6 border-b border-stone-100">
+              <div>
+                <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-50 text-emerald-800 text-[11px] font-black uppercase tracking-wider mb-2">
+                  <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+                  Supabase Cloud Database Synced
+                </div>
+                <h3 className="text-xl font-black text-stone-900 flex items-center gap-2">
+                  <Sliders className="w-5 h-5 text-red-600" />
+                  Landing Page Section Visibility Matrix
+                </h3>
+                <p className="text-xs text-stone-500 mt-1 max-w-2xl leading-relaxed">
+                  Toggle on or off individual parts of the public landing page in real-time. Changes are immediately saved to the Supabase database (<code className="bg-stone-100 px-1 py-0.5 rounded font-mono text-[11px]">stanbax_landing_sections</code>), broadcast to visitors, and reflected across all devices.
+                </p>
+              </div>
+
+              <div className="flex items-center gap-2 shrink-0">
+                <button
+                  type="button"
+                  onClick={() => {
+                    const allTrue = {
+                      hero: true,
+                      keyPillars: true,
+                      about: true,
+                      programs: true,
+                      studentLife: true,
+                      gallery: true,
+                      faculty: true,
+                      calendar: true,
+                      newsBlog: true,
+                      notices: true,
+                      testimonials: true,
+                      achievements: true,
+                      houseChampionship: true,
+                      contributors: true,
+                      contact: true,
+                      faq: true
+                    };
+                    Object.entries(allTrue).forEach(([k, v]) => {
+                      updateLandingSectionVisibility(k as any, v);
+                    });
+                    showToast('All 16 landing page sections enabled and synced to Supabase database!');
+                  }}
+                  className="px-4 py-2 rounded-xl text-xs font-black bg-stone-900 text-white hover:bg-stone-800 transition-all cursor-pointer shadow-xs flex items-center gap-1.5"
+                >
+                  <Check className="w-3.5 h-3.5 text-emerald-400" />
+                  <span>Enable All (16)</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    resetLandingSectionsToDefault();
+                    showToast('Section visibility reset to official defaults and synced online.');
+                  }}
+                  className="px-3 py-2 rounded-xl text-xs font-bold bg-stone-100 text-stone-700 hover:bg-stone-200 transition-all cursor-pointer flex items-center gap-1.5"
+                  title="Reset to default visibility"
+                >
+                  <RotateCcw className="w-3.5 h-3.5 text-stone-500" />
+                  <span>Reset Defaults</span>
+                </button>
+              </div>
+            </div>
+
+            {/* Quick Summary Pill Bar */}
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+              <div className="p-4 rounded-2xl bg-stone-50 border border-stone-200/70">
+                <div className="text-[11px] font-bold text-stone-500 uppercase tracking-wider">Total Modules</div>
+                <div className="text-2xl font-black text-stone-900 mt-1">16</div>
+                <div className="text-[10px] text-stone-400 mt-0.5">Landing page components</div>
+              </div>
+
+              <div className="p-4 rounded-2xl bg-emerald-50/70 border border-emerald-200/70">
+                <div className="text-[11px] font-bold text-emerald-700 uppercase tracking-wider">Active & Visible</div>
+                <div className="text-2xl font-black text-emerald-900 mt-1">
+                  {[
+                    landingSections.hero,
+                    landingSections.keyPillars,
+                    landingSections.about,
+                    landingSections.programs,
+                    landingSections.studentLife,
+                    landingSections.gallery,
+                    landingSections.faculty,
+                    landingSections.calendar,
+                    landingSections.newsBlog,
+                    landingSections.notices,
+                    landingSections.testimonials,
+                    landingSections.achievements,
+                    landingSections.houseChampionship,
+                    landingSections.contributors,
+                    landingSections.contact,
+                    landingSections.faq
+                  ].filter(v => v !== false).length}
+                </div>
+                <div className="text-[10px] text-emerald-600 mt-0.5">Rendered on website</div>
+              </div>
+
+              <div className="p-4 rounded-2xl bg-amber-50/70 border border-amber-200/70">
+                <div className="text-[11px] font-bold text-amber-800 uppercase tracking-wider">Turned Off (Hidden)</div>
+                <div className="text-2xl font-black text-amber-950 mt-1">
+                  {[
+                    landingSections.hero,
+                    landingSections.keyPillars,
+                    landingSections.about,
+                    landingSections.programs,
+                    landingSections.studentLife,
+                    landingSections.gallery,
+                    landingSections.faculty,
+                    landingSections.calendar,
+                    landingSections.newsBlog,
+                    landingSections.notices,
+                    landingSections.testimonials,
+                    landingSections.achievements,
+                    landingSections.houseChampionship,
+                    landingSections.contributors,
+                    landingSections.contact,
+                    landingSections.faq
+                  ].filter(v => v === false).length}
+                </div>
+                <div className="text-[10px] text-amber-700 mt-0.5">Omitted from visitor flow</div>
+              </div>
+
+              <div className="p-4 rounded-2xl bg-sky-50/70 border border-sky-200/70">
+                <div className="text-[11px] font-bold text-sky-800 uppercase tracking-wider">Database Channel</div>
+                <div className="text-sm font-black text-sky-950 mt-1 flex items-center gap-1.5">
+                  <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                  Supabase Live
+                </div>
+                <div className="text-[10px] text-sky-700 mt-0.5">Zero-loss persistent cloud</div>
+              </div>
+            </div>
+
+            {/* 16 Section Toggles Grid */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2">
+              {[
+                {
+                  key: 'hero',
+                  title: '1. Hero Carousel & Slides',
+                  category: 'Homepage Entrance',
+                  description: 'Large hero slide carousel with school crest, headline motto, admissions action button, and floating feature cards.'
+                },
+                {
+                  key: 'keyPillars',
+                  title: '2. Four Pillars of Excellence',
+                  category: 'Institutional Core',
+                  description: 'Four foundation cards: Moral Uprightness, Academic Rigor, Technological Literacy, and Creative Arts.'
+                },
+                {
+                  key: 'about',
+                  title: '3. About Our Heritage & Founders',
+                  category: 'School Identity',
+                  description: 'The story of Stanbax Schools, executive founder profile, vision, mission statement, and campus photo.'
+                },
+                {
+                  key: 'programs',
+                  title: '4. Academic Programs',
+                  category: 'Curriculum & Tiers',
+                  description: 'Age-tiered curricula from Early Years / Creche & KG, Primary Basic, Junior Secondary, to Senior Secondary.'
+                },
+                {
+                  key: 'studentLife',
+                  title: '5. Student Life, Clubs & Societies',
+                  category: 'Campus Experience',
+                  description: 'Extracurricular clubs: Jet Club, Press Club, Music & Arts, Debating Society, and student leadership roles.'
+                },
+                {
+                  key: 'gallery',
+                  title: '6. Campus Facilities & Photo Gallery',
+                  category: 'Visual Showcase',
+                  description: 'Category-filtered gallery showing laboratories, library, ICT suites, sports arena, and cultural festivities.'
+                },
+                {
+                  key: 'faculty',
+                  title: '7. Distinguished Faculty Team',
+                  category: 'Educators & Leaders',
+                  description: 'Profiles, qualifications, subject competencies, and mentorship credentials of teaching faculty.'
+                },
+                {
+                  key: 'calendar',
+                  title: '8. Academic Calendar & Term Events',
+                  category: 'Schedules & Milestones',
+                  description: 'Key academic milestones: resumption dates, mid-term breaks, examinations, sports day, and executive PTA.'
+                },
+                {
+                  key: 'newsBlog',
+                  title: '9. School News & Press Club Editorial',
+                  category: 'Campus Journalism',
+                  description: 'Official student journalism, competition triumphs, press announcements, and campus newsletter articles.'
+                },
+                {
+                  key: 'notices',
+                  title: '10. Public Notice Board',
+                  category: 'Official Bulletins',
+                  description: 'Executive memos, term fee schedules, entrance examination announcements, and emergency notices.'
+                },
+                {
+                  key: 'testimonials',
+                  title: '11. Parent & Scholar Testimonials',
+                  category: 'Community Reviews',
+                  description: 'Verified parent remarks, scholar satisfaction ratings, and alumni endorsements regarding pastoral care.'
+                },
+                {
+                  key: 'achievements',
+                  title: '12. Scholar Laurels & Achievements',
+                  category: 'Academic Honors',
+                  description: 'National olympiad victories, WAEC distinctions, Cowbellpedia trophies, and inter-school academic laurels.'
+                },
+                {
+                  key: 'houseChampionship',
+                  title: '13. Inter-House Sports Championship',
+                  category: 'House Standings',
+                  description: 'Competitive leaderboard for Blue, Green, Yellow, and Red Houses with live points table and mottos.'
+                },
+                {
+                  key: 'contributors',
+                  title: '14. Production Credits & Leadership',
+                  category: 'Credits & Governance',
+                  description: 'Official engineering credits, patrons, technological development acknowledgements, and advisory leaders.'
+                },
+                {
+                  key: 'contact',
+                  title: '15. Campus Contact & Admissions Desk',
+                  category: 'Direct Channels',
+                  description: 'Physical campus address in Ibadan, telephone lines, official email, WhatsApp link, and inquiry form.'
+                },
+                {
+                  key: 'faq',
+                  title: '16. Frequently Asked Questions (FAQ)',
+                  category: 'Information & Answers',
+                  description: 'Interactive FAQ accordion addressing prospective parent inquiries on fees, curriculum, and admissions.'
+                }
+              ].map(sec => {
+                const isVisible = (landingSections as any)[sec.key] !== false;
+                return (
+                  <div
+                    key={sec.key}
+                    className={`p-5 rounded-2xl border transition-all duration-200 flex flex-col justify-between ${
+                      isVisible 
+                        ? 'bg-white border-stone-200 shadow-2xs hover:border-stone-300' 
+                        : 'bg-stone-50/80 border-stone-200/60 opacity-80'
+                    }`}
+                  >
+                    <div>
+                      <div className="flex items-center justify-between gap-2 mb-2">
+                        <span className="text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-md bg-stone-100 text-stone-600">
+                          {sec.category}
+                        </span>
+                        <span className={`text-[11px] font-black px-2 py-0.5 rounded-full ${
+                          isVisible 
+                            ? 'bg-emerald-100 text-emerald-800' 
+                            : 'bg-stone-200 text-stone-600'
+                        }`}>
+                          {isVisible ? 'Visible' : 'Hidden'}
+                        </span>
+                      </div>
+
+                      <h4 className="text-sm font-black text-stone-900">
+                        {sec.title}
+                      </h4>
+                      <p className="text-xs text-stone-500 mt-1 leading-relaxed">
+                        {sec.description}
+                      </p>
+                    </div>
+
+                    <div className="pt-4 mt-4 border-t border-stone-100 flex items-center justify-between">
+                      <span className="text-xs font-bold text-stone-600">
+                        Show on Landing Page
+                      </span>
+
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const next = !isVisible;
+                          updateLandingSectionVisibility(sec.key as any, next);
+                          showToast(`${sec.title} is now ${next ? 'visible on' : 'hidden from'} landing page and synced to Supabase!`);
+                        }}
+                        className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-hidden ${
+                          isVisible ? 'bg-red-600' : 'bg-stone-300'
+                        }`}
+                        role="switch"
+                        aria-checked={isVisible}
+                      >
+                        <span
+                          className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow-md ring-0 transition duration-200 ease-in-out ${
+                            isVisible ? 'translate-x-5' : 'translate-x-0'
+                          }`}
+                        />
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* ========================================================================= */}
       {/* 1. TAB: SCHOOL LOGO & BRAND IDENTITY STUDIO (PRIMARY FOCUS)              */}

@@ -2,6 +2,7 @@ import {
   AppImages, 
   Notice, 
   AdmissionApplication, 
+  LandingPageSectionsConfig,
   Homework, 
   GradeRecord, 
   StudentProfile, 
@@ -48,6 +49,7 @@ import {
   WaecRegistration,
   WaecPromptBroadcast
 } from '../types';
+import { ROSTER_STUDENTS } from './rosterStudents';
 
 export const DEFAULT_IMAGES: AppImages = {
   crest: 'https://images.unsplash.com/photo-1546410531-bb4caa6b424d?w=400&auto=format&fit=crop&q=80',
@@ -88,7 +90,8 @@ export const DEFAULT_SCHOOL_STATS = SCHOOL_INFO.stats || [];
 export const DEFAULT_CLASSES: SchoolClass[] = [
   { id: 'cls-1', name: 'Creche & Playgroup', category: 'Early Years', tuitionPerTerm: 120000, description: 'Nurturing toddler development ages 3 months - 2 years', isActive: true },
   { id: 'cls-2', name: 'Nursery 1', category: 'Early Years', tuitionPerTerm: 135000, description: 'Foundational literacy and sensory play', isActive: true },
-  { id: 'cls-3', name: 'Nursery 2', category: 'Early Years', tuitionPerTerm: 140000, description: 'Phonics, early numeracy, and social development', isActive: true },
+  { id: 'cls-3', name: 'Kg 2', category: 'Early Years', tuitionPerTerm: 140000, description: 'Kindergarten 2 preparatory phonics, early numeracy, and social development', isActive: true },
+  { id: 'cls-nur2', name: 'Nursery 2', category: 'Early Years', tuitionPerTerm: 140000, description: 'Phonics, early numeracy, and social development', isActive: true },
   { id: 'cls-4', name: 'Primary 1', category: 'Primary', tuitionPerTerm: 155000, description: 'Lower primary core curriculum', isActive: true },
   { id: 'cls-5', name: 'Primary 2', category: 'Primary', tuitionPerTerm: 160000, description: 'Lower primary STEM and language arts', isActive: true },
   { id: 'cls-6', name: 'Primary 3', category: 'Primary', tuitionPerTerm: 165000, description: 'Consolidation of reading and computation', isActive: true },
@@ -758,7 +761,8 @@ export const DEMO_STUDENTS: StudentProfile[] = [
     feePaid: 280000,
     feeBalance: 0,
     feeStatus: 'Fully Paid'
-  }
+  },
+  ...ROSTER_STUDENTS
 ];
 
 export const DEFAULT_CUSTOM_RESULTS: CustomResult[] = [
@@ -2431,3 +2435,21 @@ export const DEFAULT_WAEC_REGISTRATIONS: WaecRegistration[] = [
   }
 ];
 
+export const DEFAULT_LANDING_SECTIONS: LandingPageSectionsConfig = {
+  hero: true,
+  keyPillars: true,
+  about: true,
+  programs: true,
+  studentLife: true,
+  gallery: true,
+  faculty: true,
+  calendar: true,
+  newsBlog: true,
+  notices: true,
+  testimonials: true,
+  achievements: true,
+  houseChampionship: true,
+  contributors: true,
+  contact: true,
+  faq: true
+};

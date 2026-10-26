@@ -32,6 +32,9 @@ import {
 import { isRemoteEnabled } from '../../../lib/supabase';
 import { NetlifyCloudSyncModal } from './NetlifyCloudSyncModal';
 import { CustomResultsManagerModal } from './CustomResultsManagerModal';
+import { AdminEditStudentModal } from './AdminEditStudentModal';
+import { AdminFamilyLinkageModal } from './AdminFamilyLinkageModal';
+import { Edit3, Calendar as CalendarIcon } from 'lucide-react';
 
 export const AdminStudentsAlumniTab: React.FC = () => {
   const { 
@@ -55,11 +58,25 @@ export const AdminStudentsAlumniTab: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [filterType, setFilterType] = useState<'all' | 'active' | 'alumni' | 'upgraded' | 'pending_alumni'>('all');
   const [selectedHouseFilter, setSelectedHouseFilter] = useState('all');
+  const [selectedClassFilter, setSelectedClassFilter] = useState('all');
+  const [studentToEdit, setStudentToEdit] = useState<StudentProfile | null>(null);
   const [successMsg, setSuccessMsg] = useState('');
   const [errorMsg, setErrorMsg] = useState('');
   const [showSyncModal, setShowSyncModal] = useState(false);
   const [studentForCustomResults, setStudentForCustomResults] = useState<StudentProfile | null>(null);
   const [isRefreshingOnline, setIsRefreshingOnline] = useState(false);
+  const [showFamilyModal, setShowFamilyModal] = useState(false);
+
+  const getScholarAge = (dob?: string): number | null => {
+    if (!dob) return null;
+    const b = new Date(dob);
+    if (isNaN(b.getTime())) return null;
+    const now = new Date();
+    let age = now.getFullYear() - b.getFullYear();
+    const m = now.getMonth() - b.getMonth();
+    if (m < 0 || (m === 0 && now.getDate() < b.getDate())) age--;
+    return age >= 0 ? age : null;
+  };
 
   // Upgrade confirmation modal
   const [studentToUpgrade, setStudentToUpgrade] = useState<StudentProfile | null>(null);
@@ -111,11 +128,33 @@ export const AdminStudentsAlumniTab: React.FC = () => {
       if (!match) return false;
     }
 
+    if (selectedClassFilter !== 'all') {
+      const gNorm = (s.grade || '').toLowerCase();
+      const targetNorm = selectedClassFilter.toLowerCase();
+      if (targetNorm === 'kg 2' && !gNorm.includes('kg 2') && !gNorm.includes('nursery 2')) {
+        return false;
+      } else if (targetNorm.includes('primary') && !gNorm.includes(targetNorm) && !gNorm.includes(targetNorm.replace('primary', 'pry'))) {
+        return false;
+      } else if (targetNorm === 'sss 2 science' && !gNorm.includes('ss 2') && !gNorm.includes('sss 2')) {
+        return false;
+      } else if (!targetNorm.includes('primary') && targetNorm !== 'kg 2' && targetNorm !== 'sss 2 science') {
+        if (!gNorm.includes(targetNorm)) return false;
+      }
+    }
+
     if (filterType === 'active') return !s.isAlumni;
     if (filterType === 'alumni') return !!s.isAlumni;
     if (filterType === 'upgraded') return !!s.isUpgradedTutor;
     return true;
   });
+
+  const handleSaveStudentReassignments = (id: string, updates: Partial<StudentProfile>) => {
+    updateStudent(id, updates);
+    const targetStudent = students.find(s => s.id === id);
+    const scholarName = updates.name || targetStudent?.name || 'Scholar';
+    setSuccessMsg(`Successfully updated and reassigned profile for ${scholarName}!`);
+    setTimeout(() => setSuccessMsg(''), 4500);
+  };
 
   const handleToggleAlumni = (student: StudentProfile) => {
     const nextAlumniState = !student.isAlumni;
@@ -327,6 +366,17 @@ export const AdminStudentsAlumniTab: React.FC = () => {
           </button>
 
           <button
+            type="button"
+            onClick={() => setShowFamilyModal(true)}
+            className="px-4 py-2.5 rounded-xl bg-purple-50 hover:bg-purple-100 text-purple-950 border border-purple-300 text-xs font-bold shadow-xs cursor-pointer transition flex items-center gap-2"
+            title="Assign siblings to one parent, merge parent accounts, and manage family links"
+            id="btn-admin-family-linkage"
+          >
+            <Users className="w-4 h-4 text-purple-700" />
+            <span>Family & Sibling Linkage</span>
+          </button>
+
+          <button
             onClick={() => setStudentForCustomResults(students[0] || null)}
             className="px-4 py-2.5 rounded-xl bg-amber-50 hover:bg-amber-100 text-amber-950 border border-amber-300 text-xs font-bold shadow-xs cursor-pointer transition flex items-center gap-2"
             title="Upload and manage custom result slips, WAEC, NECO, and certified certificates"
@@ -460,6 +510,27 @@ export const AdminStudentsAlumniTab: React.FC = () => {
               className="w-full pl-9 pr-3.5 py-2.5 rounded-xl border border-slate-300 text-xs font-medium focus:ring-2 focus:ring-blue-800 outline-none"
             />
           </div>
+
+          {/* Class Filter Dropdown */}
+          <select
+            value={selectedClassFilter}
+            onChange={(e) => setSelectedClassFilter(e.target.value)}
+            className="w-full sm:w-auto px-3 py-2.5 rounded-xl border border-slate-300 text-xs font-bold text-slate-700 bg-slate-50 hover:bg-slate-100 cursor-pointer outline-none focus:ring-2 focus:ring-blue-800 shrink-0"
+            title="Filter roster by Enrolled Class / Grade"
+          >
+            <option value="all">All Classes / Grades</option>
+            {classes.map(c => (
+              <option key={c.id} value={c.name}>
+                {c.name}
+              </option>
+            ))}
+            {!classes.some(c => c.name.toLowerCase() === 'kg 2') && (
+              <option value="Kg 2">Kg 2</option>
+            )}
+            {!classes.some(c => c.name.toLowerCase() === 'primary 1') && (
+              <option value="Primary 1">Primary 1</option>
+            )}
+          </select>
 
           {/* House Filter Dropdown */}
           <select
@@ -616,7 +687,24 @@ export const AdminStudentsAlumniTab: React.FC = () => {
                 </div>
 
                 <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 text-xs text-slate-600">
-                  <span>Class: <strong className="text-slate-800">{std.grade}</strong></span>
+                  <span>Class: <strong className="text-slate-900 font-extrabold">{std.grade}</strong></span>
+                  <span>•</span>
+                  <span>
+                    Gender: <strong className="text-slate-800">{std.gender || 'Not Specified'}</strong>
+                  </span>
+                  {std.dateOfBirth && (
+                    <>
+                      <span>•</span>
+                      <span>
+                        DOB: <strong className="text-slate-800">{std.dateOfBirth}</strong>
+                        {getScholarAge(std.dateOfBirth) !== null && (
+                          <span className="ml-1 text-[11px] text-blue-800 font-bold">
+                            ({getScholarAge(std.dateOfBirth)} yrs)
+                          </span>
+                        )}
+                      </span>
+                    </>
+                  )}
                   <span>•</span>
                   <span>Annual Average: <strong className="text-slate-800">{std.termAverage}%</strong></span>
                   <span>•</span>
@@ -657,8 +745,6 @@ export const AdminStudentsAlumniTab: React.FC = () => {
                       );
                     })()}
                   </div>
-                  <span>•</span>
-                  <span>History Archive: <strong className="text-blue-700 font-semibold">{std.academicHistory?.length || 1} Past Sessions Logged</strong></span>
                 </div>
 
                 {std.isAlumni && (
@@ -668,8 +754,19 @@ export const AdminStudentsAlumniTab: React.FC = () => {
                 )}
               </div>
 
-      {/* Action Buttons */}
+              {/* Action Buttons */}
               <div className="flex flex-wrap items-center gap-2 shrink-0">
+                {/* Reassign & Edit Scholar Profile */}
+                <button
+                  type="button"
+                  onClick={() => setStudentToEdit(std)}
+                  className="px-3.5 py-2 rounded-xl bg-blue-900 hover:bg-blue-950 text-white text-xs font-black shadow-xs transition flex items-center gap-1.5 cursor-pointer border border-blue-800 active:scale-98"
+                  title="Reassign Class, Athletic House, DOB, Age, Gender or Portal Credentials"
+                >
+                  <Edit3 className="w-3.5 h-3.5 text-amber-300" />
+                  <span>Reassign & Edit</span>
+                </button>
+
                 {/* Custom Results Manager */}
                 <button
                   type="button"
@@ -1146,6 +1243,22 @@ export const AdminStudentsAlumniTab: React.FC = () => {
           onClose={() => setStudentForCustomResults(null)}
         />
       )}
+
+      {/* Admin Reassign & Edit Student Profile Modal */}
+      <AdminEditStudentModal
+        isOpen={!!studentToEdit}
+        onClose={() => setStudentToEdit(null)}
+        student={studentToEdit}
+        classes={classes}
+        houseStandings={houseStandings}
+        onSave={handleSaveStudentReassignments}
+      />
+
+      {/* Admin Family & Sibling Linkage Modal */}
+      <AdminFamilyLinkageModal
+        isOpen={showFamilyModal}
+        onClose={() => setShowFamilyModal(false)}
+      />
     </div>
   );
 };
